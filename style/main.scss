@@ -1,0 +1,55 @@
+body {
+	background-color: black;
+	color: white;
+	font-size: 1rem;
+	font-weight: 400;
+	font-style: normal;
+	font-family: "Arial", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+	font-stretch: normal;
+	font-kerning: auto;
+	tab-size: 4;
+	line-height: 1.5;
+	text-align: center;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+}
+.p {
+	margin: 0.5em;
+}
+.button-white {
+	margin: 1em;
+	padding: 0.5em;
+	transition: 0.3s all linear;
+	background-color: rgba(0, 0, 0, 0);
+	text-align: center;
+	text-decoration: none;
+	font-weight: bolder;
+	outline: yellowgreen solid 0.2rem;
+	border-radius: 0.5rem;
+	color: yellowgreen;
+	&:hover:not([disabled]), &:focus:not([disabled]), &:active:not([disabled]) {
+		background-color: yellowgreen;
+		color: black;
+	}
+}
+.button-blue {
+	margin: 1em;
+	padding: 0.5em;
+	transition: 0.3s all linear;
+	background-color: rgba(0, 0, 0, 0);
+	text-align: center;
+	text-decoration: none;
+	font-weight: bolder;
+	outline: cyan solid 0.2rem;
+	border-radius: 0.5rem;
+	color: cyan;
+	&:hover:not([disabled]), &:focus:not([disabled]), &:active:not([disabled]) {
+		background-color: cyan;
+		color: black;
+	}
+}
+
+//body > * { outline: 1px solid orange; }
+//body > * > * { outline: 1px solid blue; }
+//body > * > * > * { outline: 1px solid green; }
+//body > * > * > * > * { outline: 1px solid red; }
