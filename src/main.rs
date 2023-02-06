@@ -38,7 +38,7 @@ async fn main() {
         .await
         .expect("");
     let leptos_options = conf.leptos_options;
-    let addr_https = leptos_options.site_address.clone();
+    let addr_https = leptos_options.site_addr;
     let addr_http = SocketAddr::from(([127, 0, 0, 1], 80)); // hard coded redirect
     let ports = Ports {
         http: addr_http.port(),
@@ -91,33 +91,8 @@ async fn main() {
         .fallback(file_and_error_handler)
         .layer(Extension(Arc::new(leptos_options)));
 
-    //log::debug!("app (Router): {:#?}", app);
-
-    /////////// THERE ARE CHOICES HERE ////////////
     // spawn a redirect http to https
     tokio::spawn(redirect_http_to_https(ports));
-
-    // OR
-
-    //// spawn an http version using axum::Server (hyper)
-    //let app_http = app.clone();
-    //tokio::spawn(async move {
-    //    axum::Server::bind(&addr_http)
-    //        .serve(app_http.into_make_service())
-    //        .await
-    //        .unwrap();
-    //});
-
-    // OR
-
-    //// only run http, comment out the block below the ///
-    //// run our app with axum_server::bind_rustls for TLS
-    //log::info!("listening on http://{}", &addr_http);
-    //axum::Server::bind(&addr_http)
-    //    .serve(app.into_make_service())
-    //    .await
-    //    .unwrap();
-    /////////// THERE ARE CHOICES ABOVE ////////////
 
     // run app with axum_server::bind_rustls for TLS
     log::info!("listening on https://{}", &addr_https);

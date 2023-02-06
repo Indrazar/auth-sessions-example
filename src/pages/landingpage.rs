@@ -4,9 +4,9 @@ use leptos_router::*;
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() -> Result<(), ServerFnError> {
-    _ = APICheck::register()?;
-    //_ = AddTodo::register();
-    //_ = DeleteTodo::register();
+    APICheck::register()?;
+    //AddTodo::register();
+    //DeleteTodo::register();
     Ok(())
 }
 

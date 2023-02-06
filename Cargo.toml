@@ -11,6 +11,7 @@ axum = { version = "0.6", optional = true }
 axum-extra = { version = "0.4", optional = true, features = ["cookie"] }
 axum-server = { version = "0.4", features = ["tls-rustls"], optional = true }
 cfg-if = "1"
+chrono = { version = "0.4", optional = true, default-features = false, features = ["clock", "std"] }
 console_error_panic_hook = "0.1"
 console_log = "0.2"
 http = "0.2"
@@ -20,6 +21,7 @@ leptos_meta = { git = "https://github.com/leptos-rs/leptos", optional = true }
 leptos_reactive = { git = "https://github.com/leptos-rs/leptos" }
 leptos_router = { git = "https://github.com/leptos-rs/leptos", default-features = false }
 log = "0.4"
+#oauth2 = { version = "4.3.0", default-features = false, features = ["rustls-tls"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 simple_logger = "4"
@@ -28,11 +30,7 @@ tokio = { version = "1.25", features = ["full"], optional = true }
 tower = { version = "0.4", optional = true }
 tower-http = { version = "0.3", features = ["fs"], optional = true }
 wasm-bindgen = "0.2"
-web-sys = {version = "0.3", optional = true, features = [
-	"AbortController",
-	"AbortSignal",
-	"HtmlDocument",
-] }
+web-sys = { version = "0.3", optional = true, features = ["AbortController", "AbortSignal", "HtmlDocument",] }
 
 
 [features]
@@ -40,16 +38,17 @@ web-sys = {version = "0.3", optional = true, features = [
 #csr = ["leptos/csr", "leptos_meta/csr", "leptos_router/csr"]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate", "dep:web-sys"]
 ssr = [
-	"dep:axum", 
+	"dep:axum",
 	"dep:axum-extra",
-	"dep:axum-server", 
-	"dep:tokio", 
-	"dep:tower", 
-	"dep:tower-http", 
-	"leptos/ssr", 
-	"leptos_meta/ssr", 
-	"leptos_router/ssr", 
+	"dep:axum-server",
+	"dep:tokio",
+	"dep:tower",
+	"dep:tower-http",
+	"leptos/ssr",
+	"leptos_meta/ssr",
+	"leptos_router/ssr",
 	"dep:leptos_axum",
+	"dep:chrono"
 ]
 
 [package.metadata.cargo-all-features]
@@ -65,7 +64,7 @@ skip_feature_sets = [["csr", "ssr"], ["csr", "hydrate"], ["ssr", "hydrate"]]
 
 [package.metadata.leptos]
 # The name used by wasm-bindgen/cargo-leptos for the JS/WASM bundle. Defaults to the crate name
-output-name = "auth-example"
+output-name = "auth_example"
 
 # The site root folder is where cargo-leptos generate all output. WARNING: all content of this folder will be erased on a rebuild. Use it in your server setup.
 site-root = "target/site"
@@ -81,7 +80,7 @@ style-file = "style/main.scss"
 assets-dir = "public"
 
 # The IP and port (ex: 127.0.0.1:3000) where the server serves HTTPS content. Use it in your server setup.
-site-address = "127.0.0.1:3000"
+site-addr = "127.0.0.1:3000"
 
 # The port to use for automatic reload monitoring
 reload-port = 3001

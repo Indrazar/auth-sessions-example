@@ -5,7 +5,7 @@ use crate::pages::landingpage::{BackendCheck, BackendCheckProps};
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() -> Result<(), ServerFnError> {
-    _ = SignUp::register()?;
+    SignUp::register()?;
 
     Ok(())
 }
