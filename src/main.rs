@@ -134,16 +134,16 @@ fn resolve_session(cx: Scope) {
 #[cfg(feature = "ssr")]
 fn determine_session_id(req: RequestParts) -> String {
     let cookies = match req.headers.get(COOKIE) {
+        Some(t) => t.to_str().unwrap_or_default(),
+        None => return generate_new_session(),
+    };
+
+    let unconfirmed_session = match get_cookie_value(cookies, "SESSIONID") {
         Some(t) => t,
         None => return generate_new_session(),
     };
 
-    let unconfirmed_session =
-        match get_cookie_value(cookies.to_str().unwrap_or_default(), "SESSIONID") {
-            Some(t) => t,
-            None => return generate_new_session(),
-        };
-
+    log::trace!("incoming unconfirmed sessionid: {unconfirmed_session}");
     revalidate_token(unconfirmed_session.as_str()).to_string()
 }
 

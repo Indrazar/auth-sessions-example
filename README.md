@@ -1,3 +1,6 @@
+# Does This Work?
+No. It's mostly a learning experience and I have no idea what I am doing. This section will disappear once it is a more serious template.
+
 # Leptos Auth-Example
 
 This project is made with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum).
