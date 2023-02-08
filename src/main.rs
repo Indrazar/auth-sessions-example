@@ -6,32 +6,23 @@ struct Ports {
 }
 
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
-    use leptos::*;
-    use axum::{
-        http::header::{COOKIE, SET_COOKIE},
-        http::{HeaderMap, HeaderValue},
-        extract::Host,
-        handler::HandlerWithoutStateExt,
-        http::{StatusCode, Uri},
-        response::Redirect,
-        routing::post,
-        extract::Extension,
-        BoxError,
-        Router,
-    };
-    use axum_server::tls_rustls::RustlsConfig;
-    use leptos_axum::*;
-    use chrono::prelude::*;
+use auth_example::fileserv::file_and_error_handler;
+use auth_example::pages::{register_server_functions, App, AppProps};
 
-    use std::{
-        fs,
-        net::SocketAddr,
-        sync::Arc,
-        path::PathBuf,
-    };
+use axum::{
+    extract::Extension,
+    extract::Host,
+    handler::HandlerWithoutStateExt,
+    http::{StatusCode, Uri},
+    response::Redirect,
+    routing::post,
+    BoxError, Router,
+};
+use axum_server::tls_rustls::RustlsConfig;
+use leptos::*;
+use leptos_axum::*;
 
-    use auth_example::pages::{App, AppProps, register_server_functions};
-    use auth_example::fileserv::file_and_error_handler;
+use std::{fs, net::SocketAddr, path::PathBuf, sync::Arc};
 }}
 
 #[cfg(feature = "ssr")]
@@ -91,7 +82,6 @@ async fn main() {
     let app = Router::new()
         .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
         .leptos_routes(leptos_options.clone(), routes, |cx| {
-            resolve_session(cx);
             view! { cx, <App/> }
         })
         .fallback(file_and_error_handler)
@@ -106,77 +96,6 @@ async fn main() {
         .serve(app.into_make_service())
         .await
         .unwrap();
-}
-
-#[cfg(feature = "ssr")]
-fn resolve_session(cx: Scope) {
-    let http_req =
-        use_context::<leptos_axum::RequestParts>(cx).expect("to have leptos_axum::RequestParts");
-    let session_id = determine_session_id(http_req);
-    let response = use_context::<leptos_axum::ResponseOptions>(cx)
-        .expect("to have leptos_axum::ResposneParts");
-    let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
-    let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
-    let mut response_parts = ResponseParts::default();
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        SET_COOKIE,
-        HeaderValue::from_str(&format!(
-            "SESSIONID={session_id}; Expires={date_string}; Secure; SameSite=Strict; HttpOnly; Path=/"
-        ))
-        .expect("to create header value"),
-    );
-    log::trace!("new cookie generated: {session_id}");
-    response_parts.headers = headers;
-    response.overwrite(response_parts);
-}
-
-#[cfg(feature = "ssr")]
-fn determine_session_id(req: RequestParts) -> String {
-    let cookies = match req.headers.get(COOKIE) {
-        Some(t) => t.to_str().unwrap_or_default(),
-        None => return generate_new_session(),
-    };
-
-    let unconfirmed_session = match get_cookie_value(cookies, "SESSIONID") {
-        Some(t) => t,
-        None => return generate_new_session(),
-    };
-
-    log::trace!("incoming unconfirmed sessionid: {unconfirmed_session}");
-    revalidate_token(unconfirmed_session.as_str()).to_string()
-}
-
-#[cfg(feature = "ssr")]
-fn generate_new_session() -> String {
-    "1".to_string()
-}
-
-#[cfg(feature = "ssr")]
-fn revalidate_token(suspect_session: &str) -> &str {
-    match suspect_session {
-        "1" => "2",
-        "2" => "3",
-        "3" => "4",
-        "4" => "5",
-        "5" => "6",
-        "6" => "7",
-        "7" => "8",
-        "8" => "1",
-        _ => "not_in_loop",
-    }
-}
-
-#[cfg(feature = "ssr")]
-fn get_cookie_value(cookies: &str, key: &str) -> Option<String> {
-    cookies.split(';').find_map(|cookie| {
-        let cookie_arr = cookie.split_once('=').unwrap_or_default();
-        if cookie_arr.0.trim().eq(key) && !cookie_arr.1.trim().is_empty() {
-            Some(cookie_arr.1.to_string())
-        } else {
-            None
-        }
-    })
 }
 
 #[cfg(feature = "ssr")]

@@ -7,7 +7,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-axum = { version = "0.6", optional = true }
+axum = { version = "0.6", optional = true, features = ["headers"] }
 axum-extra = { version = "0.4", optional = true, features = ["cookie"] }
 axum-server = { version = "0.4", features = ["tls-rustls"], optional = true }
 cfg-if = "1"
@@ -15,6 +15,7 @@ chrono = { version = "0.4", optional = true, default-features = false, features 
 console_error_panic_hook = "0.1"
 console_log = "0.2"
 http = "0.2"
+#jsonwebtoken = { version = "8.0", optional = true }
 leptos = { git = "https://github.com/leptos-rs/leptos", default-features = false, features = ["serde"] }
 leptos_axum = { git = "https://github.com/leptos-rs/leptos", default-features = false, optional = true }
 leptos_meta = { git = "https://github.com/leptos-rs/leptos", optional = true }
@@ -38,27 +39,29 @@ web-sys = { version = "0.3", optional = true, features = ["AbortController", "Ab
 #csr = ["leptos/csr", "leptos_meta/csr", "leptos_router/csr"]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate", "dep:web-sys"]
 ssr = [
-	"dep:axum",
-	"dep:axum-extra",
-	"dep:axum-server",
-	"dep:tokio",
-	"dep:tower",
-	"dep:tower-http",
-	"leptos/ssr",
-	"leptos_meta/ssr",
-	"leptos_router/ssr",
-	"dep:leptos_axum",
-	"dep:chrono"
+    "dep:axum",
+    "dep:axum-extra",
+    "dep:axum-server",
+    "dep:tokio",
+    "dep:tower",
+    "dep:tower-http",
+    "leptos/ssr",
+    "leptos_meta/ssr",
+    "leptos_router/ssr",
+    "dep:leptos_axum",
+    "dep:chrono",
+#   "dep:jsonwebtoken",
+#   "dep:oauth2",
 ]
 
 [package.metadata.cargo-all-features]
 denylist = [
-	"axum",
-	"tower",
-	"tower-http",
-	"tokio",
-	"sqlx",
-	"leptos_axum",
+    "axum",
+    "tower",
+    "tower-http",
+    "tokio",
+    "sqlx",
+    "leptos_axum",
 ]
 skip_feature_sets = [["csr", "ssr"], ["csr", "hydrate"], ["ssr", "hydrate"]]
 
