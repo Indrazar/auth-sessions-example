@@ -35,8 +35,6 @@ web-sys = { version = "0.3", optional = true, features = ["AbortController", "Ab
 
 
 [features]
-#default = ["csr"]
-#csr = ["leptos/csr", "leptos_meta/csr", "leptos_router/csr"]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate", "dep:web-sys"]
 ssr = [
     "dep:axum",
@@ -63,7 +61,7 @@ denylist = [
     "sqlx",
     "leptos_axum",
 ]
-skip_feature_sets = [["csr", "ssr"], ["csr", "hydrate"], ["ssr", "hydrate"]]
+skip_feature_sets = [["ssr", "hydrate"]]
 
 [package.metadata.leptos]
 # The name used by wasm-bindgen/cargo-leptos for the JS/WASM bundle. Defaults to the crate name

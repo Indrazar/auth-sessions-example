@@ -1,36 +1,36 @@
+use crate::pages::{components::logheader::*, components::redirect::*};
+use cfg_if::cfg_if;
 use leptos::*;
-//use leptos_meta::*;
 use leptos_router::*;
 
-use crate::pages::landingpage::*;
+cfg_if! { if #[cfg(feature = "ssr")] {
+    use axum::{
+        http::header::SET_COOKIE,
+        http::{HeaderMap, HeaderValue},
+    };
+    use chrono::prelude::*;
+    use leptos_axum::ResponseParts;
 
-//#[cfg(feature = "ssr")]
-//pub fn register_server_functions() -> Result<(), ServerFnError> {
-//AddTodo::register();
-//DeleteTodo::register();
-//Ok(())
-//}
+    pub fn register_server_functions() -> Result<(), ServerFnError> {
+        ForceLogin::register()?;
+        //AddTodo::register();
+        //DeleteTodo::register();
+        Ok(())
+    }
+}}
 
 /// Renders the non-logged in landing page.
 #[component]
 pub fn LoginPage(cx: Scope) -> impl IntoView {
-    #[cfg(feature = "ssr")]
-    resolve_session(cx);
-
-    #[cfg(not(feature = "ssr"))]
-    let this_session = create_server_action::<RetrieveSession>(cx);
-    #[cfg(not(feature = "ssr"))]
-    let session_resource = create_resource(
-        cx,
-        move || (this_session.version().get()),
-        move |_| retrieve_session(cx),
-    );
-
     view! { cx,
+        <LoggedInRedirect
+            success_route=Some("/home".to_string())
+            fail_route=None
+        />
         <h1>"Auth-Example"</h1>
         <h2>"Login Page"</h2>
         //<button on:click=on_click>"Click Me: " {count}</button>
-        <p><BackendCheck/></p>
+        <p><LogHeader/></p>
         <p><GenerateSession/></p>
         <p><a href="/">"Return to landing page"</a></p>
     }
@@ -40,7 +40,7 @@ pub fn LoginPage(cx: Scope) -> impl IntoView {
 /// On the server side this will print out all the headers provided by the client
 #[component]
 pub fn GenerateSession(cx: Scope) -> impl IntoView {
-    let generate_valid_session = create_server_action::<RetrieveSession>(cx);
+    let generate_valid_session = create_server_action::<ForceLogin>(cx);
 
     view! {
         cx,
@@ -50,4 +50,32 @@ pub fn GenerateSession(cx: Scope) -> impl IntoView {
             </ActionForm>
         </div>
     }
+}
+
+#[server(ForceLogin, "/api")]
+pub async fn force_login(cx: Scope) -> Result<(), ServerFnError> {
+    force_create_session(cx);
+    Ok(())
+}
+
+/// delete this TODO REMOVE
+#[cfg(feature = "ssr")]
+pub fn force_create_session(cx: Scope) {
+    let session_id = "10".to_string();
+    let response = use_context::<leptos_axum::ResponseOptions>(cx)
+        .expect("to have leptos_axum::ResposneParts");
+    let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
+    let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
+    let mut response_parts = ResponseParts::default();
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        SET_COOKIE,
+        HeaderValue::from_str(&format!(
+            "SESSIONID={session_id}; Expires={date_string}; Secure; SameSite=Lax; HttpOnly; Path=/"
+        ))
+        .expect("to create header value"),
+    );
+    log::trace!("new session force generated: {session_id}");
+    response_parts.headers = headers;
+    response.overwrite(response_parts);
 }

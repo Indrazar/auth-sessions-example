@@ -1,12 +1,12 @@
 use leptos::*;
 use leptos_router::*;
 
-use crate::pages::landingpage::{BackendCheck, BackendCheckProps};
+use crate::pages::components::logheader::*;
+use crate::pages::components::redirect::*;
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() -> Result<(), ServerFnError> {
     SignUp::register()?;
-
     Ok(())
 }
 
@@ -22,8 +22,12 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
     //retrieve_token
 
     view! { cx,
+        <LoggedInRedirect
+            success_route=Some("/home".to_string())
+            fail_route=None
+        />
         <h1>"Auth-Example"</h1>
-        <BackendCheck/>
+        <LogHeader/>
         <h2>"Sign Up"</h2>
         <p>
             <ActionForm action=sign_up>
