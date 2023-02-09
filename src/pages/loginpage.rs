@@ -1,4 +1,7 @@
-use crate::pages::{components::logheader::*, components::redirect::*};
+use crate::pages::{
+    components::logheader::{LogHeader, LogHeaderProps},
+    components::redirect::{LoggedInRedirect, LoggedInRedirectProps},
+};
 use cfg_if::cfg_if;
 use leptos::*;
 use leptos_router::*;
@@ -13,8 +16,6 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 
     pub fn register_server_functions() -> Result<(), ServerFnError> {
         ForceLogin::register()?;
-        //AddTodo::register();
-        //DeleteTodo::register();
         Ok(())
     }
 }}
@@ -32,6 +33,7 @@ pub fn LoginPage(cx: Scope) -> impl IntoView {
         //<button on:click=on_click>"Click Me: " {count}</button>
         <p><LogHeader/></p>
         <p><GenerateSession/></p>
+        <p><a href="/home">"Check if session is valid"</a></p>
         <p><a href="/">"Return to landing page"</a></p>
     }
 }

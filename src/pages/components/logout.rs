@@ -12,18 +12,20 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 }}
 
 #[component]
-pub fn Logout(cx: Scope) -> impl IntoView {
+pub fn LogoutButton(cx: Scope) -> impl IntoView {
     let logout = create_server_action::<DestroySession>(cx);
 
     view! { cx,
         <ActionForm action=logout>
+        //<a href="/">
             <input class="logout-button" type="submit" value="Logout"/>
+        //</a>
         </ActionForm>
     }
 }
 
 #[server(DestroySession, "/api")]
-pub async fn server_destroy_session(cx: Scope) -> Result<(), ServerFnError> {
+async fn server_destroy_session(cx: Scope) -> Result<(), ServerFnError> {
     destroy_session(cx);
     Ok(())
 }

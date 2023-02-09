@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { version = "0.6", optional = true, features = ["headers"] }
-axum-extra = { version = "0.4", optional = true, features = ["cookie"] }
+#axum-extra = { version = "0.4", optional = true, features = ["cookie"] }
 axum-server = { version = "0.4", features = ["tls-rustls"], optional = true }
 cfg-if = "1"
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock", "std"] }
@@ -22,7 +22,7 @@ leptos_meta = { git = "https://github.com/leptos-rs/leptos", optional = true }
 leptos_reactive = { git = "https://github.com/leptos-rs/leptos" }
 leptos_router = { git = "https://github.com/leptos-rs/leptos", default-features = false }
 log = "0.4"
-#oauth2 = { version = "4.3.0", default-features = false, features = ["rustls-tls"], optional = true }
+#oauth2 = { version = "4.3", default-features = false, features = ["rustls-tls"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 simple_logger = "4"
@@ -38,7 +38,7 @@ web-sys = { version = "0.3", optional = true, features = ["AbortController", "Ab
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate", "dep:web-sys"]
 ssr = [
     "dep:axum",
-    "dep:axum-extra",
+#   "dep:axum-extra",
     "dep:axum-server",
     "dep:tokio",
     "dep:tower",
@@ -58,7 +58,6 @@ denylist = [
     "tower",
     "tower-http",
     "tokio",
-    "sqlx",
     "leptos_axum",
 ]
 skip_feature_sets = [["ssr", "hydrate"]]

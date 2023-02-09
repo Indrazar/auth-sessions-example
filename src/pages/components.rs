@@ -9,6 +9,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     pub fn register_server_functions() -> Result<(), ServerFnError> {
         logout::DestroySession::register()?;
         logheader::LogClientHeader::register()?;
+        redirect::ProcessRedirect::register()?;
         Ok(())
     }
 }}

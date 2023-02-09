@@ -1,14 +1,18 @@
-use cfg_if::cfg_if;
+#[cfg(not(feature = "ssr"))]
+use crate::cookies::consume_ssr_cookie;
+#[cfg(feature = "ssr")]
+use crate::cookies::set_ssr_cookie;
+#[cfg(feature = "ssr")]
+use crate::cookies::validate_session;
 use leptos::*;
-
-cfg_if! { if #[cfg(feature = "ssr")] {
-    use axum::{
-        http::header::{COOKIE, SET_COOKIE},
-        http::{HeaderMap, HeaderValue},
-    };
-    use chrono::prelude::*;
-    use leptos_axum::{RequestParts, ResponseParts};
-}}
+#[cfg(feature = "ssr")]
+use leptos_axum::redirect;
+#[cfg(feature = "ssr")]
+use leptos_axum::ResponseOptions;
+#[cfg(not(feature = "ssr"))]
+use leptos_router::NavigateOptions;
+#[cfg(not(feature = "ssr"))]
+use leptos_router::State;
 
 /// This component forces SSR to resolve and will leave behind a javascript-
 /// enabled session cookie in the header which the WASM will read on load
@@ -21,78 +25,97 @@ pub fn LoggedInRedirect(
     success_route: Option<String>,
     fail_route: Option<String>,
 ) -> impl IntoView {
-    //#[cfg(feature = "ssr")]
-    //validate_session(cx)
-}
-
-#[server(ProcessLandingPage, "/api")]
-pub async fn retrieve_session(cx: Scope) -> Result<bool, ServerFnError> {
-    validate_session(cx)
-}
-
-#[cfg(feature = "ssr")]
-pub fn validate_session(cx: Scope) -> Result<bool, ServerFnError> {
-    let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
-        Some(rp) => rp,           // actual user request
-        None => return Ok(false), // no request, building routes in main.rs
-    };
-    let unverified_session_id = parse_session_cookie(http_req);
-    let session_id = match revalidate_token(unverified_session_id.as_str()) {
-        Some(session) => session,
-        None => return Ok(false),
-    };
-    let response = use_context::<leptos_axum::ResponseOptions>(cx)
-        .expect("to have leptos_axum::ResposneParts");
-    let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
-    let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
-    let mut response_parts = ResponseParts::default();
-    let mut headers = HeaderMap::new();
-    headers.insert(
-        SET_COOKIE,
-        HeaderValue::from_str(&format!(
-            "SESSIONID={session_id}; Expires={date_string}; Secure; SameSite=Lax; HttpOnly; Path=/"
-        ))
-        .expect("to create header value"),
-    );
-    log::trace!("valid session renewed: {session_id}");
-    response_parts.headers = headers;
-    response.overwrite(response_parts);
-    Ok(true)
-}
-
-#[cfg(feature = "ssr")]
-fn parse_session_cookie(req: RequestParts) -> String {
-    let cookies = match req.headers.get(COOKIE) {
-        Some(t) => t.to_str().unwrap_or_default(),
-        None => return generate_new_session(),
-    };
-    match get_cookie_value(cookies, "SESSIONID") {
-        Some(t) => t,
-        None => generate_new_session(),
-    }
-}
-
-#[cfg(feature = "ssr")]
-fn get_cookie_value(cookies: &str, key: &str) -> Option<String> {
-    cookies.split(';').find_map(|cookie| {
-        let cookie_arr = cookie.split_once('=').unwrap_or_default();
-        if cookie_arr.0.trim().eq(key) && !cookie_arr.1.trim().is_empty() {
-            Some(cookie_arr.1.to_string())
-        } else {
-            None
+    #[cfg(feature = "ssr")]
+    match use_context::<ResponseOptions>(cx) {
+        //todo remove this match statement once it doesn't panic
+        Some(_) => {
+            match validate_session(cx) {
+                true => {
+                    match success_route {
+                        //redirect to success_route if present
+                        Some(route) => redirect(cx, route.as_str()),
+                        //if none, set ssr cookie
+                        None => set_ssr_cookie(cx),
+                    }
+                }
+                false => {
+                    match fail_route {
+                        //redirect to fail_route if present
+                        Some(route) => redirect(cx, route.as_str()),
+                        //if none, set ssr cookie
+                        None => set_ssr_cookie(cx),
+                    }
+                }
+            }
         }
-    })
-}
-
-#[cfg(feature = "ssr")]
-fn generate_new_session() -> String {
-    "10".to_string()
-}
-
-#[cfg(feature = "ssr")]
-fn revalidate_token(suspect_session: &str) -> Option<&str> {
-    match suspect_session {
-        "10" => Some("10"),
-        _ => None,
+        None => {}
     }
+
+    #[cfg(not(feature = "ssr"))]
+    match consume_ssr_cookie(cx) {
+        true => {
+            //do nothing, ssr handled it
+        }
+        false => {
+            //ssr did not run, so we query the server
+            let redirect_action = create_server_action::<ProcessRedirect>(cx);
+            let redirect_result = create_resource(
+                cx,
+                move || (redirect_action.version().get()),
+                move |_| process_redirect(cx),
+            );
+            //this maps server response failure the same as if you faild the redirect check
+            let redirect_check = move || {
+                redirect_result
+                    .read()
+                    .map(|val| val.unwrap_or(false))
+                    .unwrap_or(false)
+            };
+            match redirect_check() {
+                //redirect to success_route if present
+                true => match success_route {
+                    Some(route) => {
+                        match leptos_router::use_navigate(cx)(
+                            route.as_str(),
+                            NavigateOptions {
+                                resolve: false,
+                                replace: true,
+                                scroll: true,
+                                state: State(None),
+                            },
+                        ) {
+                            Ok(_) => {}
+                            Err(e) => leptos::log!("{:#?}", e),
+                        }
+                    }
+                    None => {} //if no success_route do nothing
+                }, // if no success_route do nothing
+                //redirect to fail_route if present
+                false => match fail_route {
+                    Some(route) => {
+                        match leptos_router::use_navigate(cx)(
+                            route.as_str(),
+                            NavigateOptions {
+                                resolve: false,
+                                replace: true,
+                                scroll: true,
+                                state: State(None),
+                            },
+                        ) {
+                            Ok(_) => {}
+                            Err(e) => leptos::log!("{:#?}", e),
+                        }
+                    }
+                    None => {} //if no fail_route do nothing
+                },
+            };
+        }
+    }
+
+    view! {cx, <div>"Redirect Present"</div>}
+}
+
+#[server(ProcessRedirect, "/api")]
+async fn process_redirect(cx: Scope) -> Result<bool, ServerFnError> {
+    Ok(validate_session(cx))
 }

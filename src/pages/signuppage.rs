@@ -1,8 +1,7 @@
+use crate::pages::components::logheader::{LogHeader, LogHeaderProps};
+use crate::pages::components::redirect::{LoggedInRedirect, LoggedInRedirectProps};
 use leptos::*;
 use leptos_router::*;
-
-use crate::pages::components::logheader::*;
-use crate::pages::components::redirect::*;
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() -> Result<(), ServerFnError> {
@@ -29,6 +28,7 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
         <h1>"Auth-Example"</h1>
         <LogHeader/>
         <h2>"Sign Up"</h2>
+        <h3>"Not Implemented Yet"</h3>
         <p>
             <ActionForm action=sign_up>
                 //{match retrieve_token.value() {

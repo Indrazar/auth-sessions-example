@@ -19,7 +19,7 @@ pub fn LogHeader(cx: Scope) -> impl IntoView {
 
 //debugging tool
 #[server(LogClientHeader, "/api")]
-pub async fn log_client_headers(cx: Scope) -> Result<String, ServerFnError> {
+async fn log_client_headers(cx: Scope) -> Result<String, ServerFnError> {
     // this is just an example of how to access server context injected in the handlers
     let http_req = use_context::<leptos_axum::RequestParts>(cx);
     if let Some(http_req) = http_req {

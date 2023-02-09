@@ -1,5 +1,6 @@
-pub mod pages;
+pub mod cookies;
 pub mod fileserv;
+pub mod pages;
 
 use cfg_if::cfg_if;
 cfg_if! { if #[cfg(feature = "hydrate")] {
