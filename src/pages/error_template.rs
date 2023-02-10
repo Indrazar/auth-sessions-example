@@ -56,7 +56,7 @@ pub fn ErrorTemplate(
     }}
 
     view! {cx,
-        <Stylesheet id="leptos" href="/pkg/auth-example.css"/>
+        <Stylesheet id="leptos" href="/pkg/auth_example.css"/>
 
         <h1>{if errors.len() > 1 {"Errors"} else {"Error"}}</h1>
         <For

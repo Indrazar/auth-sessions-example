@@ -29,7 +29,7 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
     view! { cx,
         <LoggedInRedirect
             success_route=None
-            fail_route=Some("/".to_string())
+            fail_route=Some("/landing".to_string())
         />
         <p>"Hello! " {page_data}</p>
         <p><LogHeader/></p>
