@@ -35,7 +35,12 @@ web-sys = { version = "0.3", optional = true, features = ["AbortController", "Ab
 
 
 [features]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate", "dep:web-sys"]
+hydrate = [
+    "leptos/hydrate",
+    "leptos_meta/hydrate",
+    "leptos_router/hydrate",
+    "dep:web-sys"
+]
 ssr = [
     "dep:axum",
 #   "dep:axum-extra",

@@ -33,7 +33,10 @@ pub fn LoggedInRedirect(
                 true => {
                     match success_route {
                         //redirect to success_route if present
-                        Some(route) => redirect(cx, route.as_str()),
+                        Some(route) => {
+                            redirect(cx, route.as_str());
+                            set_ssr_cookie(cx);
+                        }
                         //if none, set ssr cookie
                         None => set_ssr_cookie(cx),
                     }
@@ -41,7 +44,10 @@ pub fn LoggedInRedirect(
                 false => {
                     match fail_route {
                         //redirect to fail_route if present
-                        Some(route) => redirect(cx, route.as_str()),
+                        Some(route) => {
+                            redirect(cx, route.as_str());
+                            set_ssr_cookie(cx);
+                        }
                         //if none, set ssr cookie
                         None => set_ssr_cookie(cx),
                     }
@@ -52,7 +58,7 @@ pub fn LoggedInRedirect(
     }
 
     #[cfg(not(feature = "ssr"))]
-    match consume_ssr_cookie(cx) {
+    match consume_ssr_cookie() {
         true => {
             //do nothing, ssr handled it
         }
@@ -77,12 +83,7 @@ pub fn LoggedInRedirect(
                     Some(route) => {
                         match leptos_router::use_navigate(cx)(
                             route.as_str(),
-                            NavigateOptions {
-                                resolve: false,
-                                replace: true,
-                                scroll: true,
-                                state: State(None),
-                            },
+                            NavigateOptions::default(),
                         ) {
                             Ok(_) => {}
                             Err(e) => leptos::log!("{:#?}", e),
@@ -95,12 +96,7 @@ pub fn LoggedInRedirect(
                     Some(route) => {
                         match leptos_router::use_navigate(cx)(
                             route.as_str(),
-                            NavigateOptions {
-                                resolve: false,
-                                replace: true,
-                                scroll: true,
-                                state: State(None),
-                            },
+                            NavigateOptions::default(),
                         ) {
                             Ok(_) => {}
                             Err(e) => leptos::log!("{:#?}", e),

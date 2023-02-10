@@ -11,6 +11,7 @@ pub fn LandingPage(cx: Scope) -> impl IntoView {
             success_route=Some(String::from("/home"))
             fail_route=Some(String::from("/landing"))
         />
+        <CoreLandingPage/>
     }
 }
 
