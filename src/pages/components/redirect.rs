@@ -1,18 +1,18 @@
-#[cfg(not(feature = "ssr"))]
-use crate::cookies::consume_ssr_cookie;
-#[cfg(feature = "ssr")]
-use crate::cookies::set_ssr_cookie;
-#[cfg(feature = "ssr")]
-use crate::cookies::validate_session;
+use cfg_if::cfg_if;
 use leptos::*;
-#[cfg(feature = "ssr")]
-use leptos_axum::redirect;
-#[cfg(feature = "ssr")]
-use leptos_axum::ResponseOptions;
-#[cfg(not(feature = "ssr"))]
-use leptos_router::NavigateOptions;
-#[cfg(not(feature = "ssr"))]
-use leptos_router::State;
+
+cfg_if! { if #[cfg(feature = "ssr")] {
+    use crate::cookies::set_ssr_cookie;
+    use crate::cookies::validate_session;
+    use leptos_axum::redirect;
+    use leptos_axum::ResponseOptions;
+}}
+
+cfg_if! { if #[cfg(not(feature = "ssr"))] {
+    use leptos_router::NavigateOptions;
+    //use leptos_router::State;
+    use crate::cookies::consume_ssr_cookie;
+}}
 
 /// This component forces SSR to resolve and will leave behind a javascript-
 /// enabled session cookie in the header which the WASM will read on load
@@ -34,22 +34,30 @@ pub fn LoggedInRedirect(
                     match success_route {
                         //redirect to success_route if present
                         Some(route) => {
+                            log::trace!("session was valid, redirecting to {route}");
                             redirect(cx, route.as_str());
                             set_ssr_cookie(cx);
                         }
                         //if none, set ssr cookie
-                        None => set_ssr_cookie(cx),
+                        None => {
+                            log::trace!("session was valid, no redirect");
+                            set_ssr_cookie(cx)
+                        }
                     }
                 }
                 false => {
                     match fail_route {
                         //redirect to fail_route if present
                         Some(route) => {
+                            log::trace!("session was invalid, redirecting to {route}");
                             redirect(cx, route.as_str());
                             set_ssr_cookie(cx);
                         }
                         //if none, set ssr cookie
-                        None => set_ssr_cookie(cx),
+                        None => {
+                            log::trace!("session was invalid, no redirect");
+                            set_ssr_cookie(cx)
+                        }
                     }
                 }
             }
@@ -70,7 +78,7 @@ pub fn LoggedInRedirect(
                 move || (redirect_action.version().get()),
                 move |_| process_redirect(cx),
             );
-            //this maps server response failure the same as if you faild the redirect check
+            //this maps server response failure the same as if you failed the redirect check
             let redirect_check = move || {
                 redirect_result
                     .read()
@@ -81,6 +89,7 @@ pub fn LoggedInRedirect(
                 //redirect to success_route if present
                 true => match success_route {
                     Some(route) => {
+                        leptos::log!("session was valid, redirecting to {route}");
                         match leptos_router::use_navigate(cx)(
                             route.as_str(),
                             NavigateOptions::default(),
@@ -89,11 +98,14 @@ pub fn LoggedInRedirect(
                             Err(e) => leptos::log!("{:#?}", e),
                         }
                     }
-                    None => {} //if no success_route do nothing
+                    None => {
+                        leptos::log!("session was valid, no redirect");
+                    } //if no success_route do nothing
                 }, // if no success_route do nothing
                 //redirect to fail_route if present
                 false => match fail_route {
                     Some(route) => {
+                        leptos::log!("session was invalid, redirecting to {route}");
                         match leptos_router::use_navigate(cx)(
                             route.as_str(),
                             NavigateOptions::default(),
@@ -102,7 +114,9 @@ pub fn LoggedInRedirect(
                             Err(e) => leptos::log!("{:#?}", e),
                         }
                     }
-                    None => {} //if no fail_route do nothing
+                    None => {
+                        leptos::log!("session was invalid, no redirect");
+                    } //if no fail_route do nothing
                 },
             };
         }
