@@ -64,13 +64,13 @@ pub async fn force_login(cx: Scope) -> Result<(), ServerFnError> {
 #[cfg(feature = "ssr")]
 pub fn force_create_session(cx: Scope) {
     let session_id = "10".to_string();
-    let response = use_context::<leptos_axum::ResponseOptions>(cx)
-        .expect("to have leptos_axum::ResposneParts");
+    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
+        Some(ro) => ro,
+        None => return,
+    };
     let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
     let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
-    let mut response_parts = ResponseParts::default();
-    let mut headers = HeaderMap::new();
-    headers.insert(
+    response.append_header(
         SET_COOKIE,
         HeaderValue::from_str(&format!(
             "SESSIONID={session_id}; Expires={date_string}; Secure; SameSite=Lax; HttpOnly; Path=/"
@@ -78,6 +78,4 @@ pub fn force_create_session(cx: Scope) {
         .expect("to create header value"),
     );
     log::trace!("new session force generated: {session_id}");
-    response_parts.headers = headers;
-    response.overwrite(response_parts);
 }

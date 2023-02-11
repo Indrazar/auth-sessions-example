@@ -32,20 +32,16 @@ async fn server_destroy_session(cx: Scope) -> Result<(), ServerFnError> {
 
 #[cfg(feature = "ssr")]
 fn destroy_session(cx: Scope) {
-    log::trace!("user logged out");
     let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
         Some(rp) => rp, // actual user request
         None => return, // no request, building routes in main.rs
     };
-    let mut response_parts = ResponseParts::default();
-    let mut headers = HeaderMap::new();
-    headers.insert(
+    response.append_header(
         SET_COOKIE,
         HeaderValue::from_str(
             "SESSIONID=deleted; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0; Secure; SameSite=Lax; HttpOnly; Path=/"
         )
         .expect("to create header value"),
     );
-    response_parts.headers = headers;
-    response.overwrite(response_parts);
+    log::trace!("user logged out");
 }

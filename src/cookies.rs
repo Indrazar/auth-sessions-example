@@ -67,22 +67,17 @@ pub fn validate_session(cx: Scope) -> bool {
     }
     // do not renew cookies every time, force logins every 30 days
     //// build header to apply renewed cookie
-    //let response = use_context::<leptos_axum::ResponseOptions>(cx)
-    //    .expect("to have leptos_axum::ResposneParts");
+    //let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
+    //    Some(ro) => ro,
+    //    None => return,
+    //};
     //let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
     //let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
-    //let mut response_parts = ResponseParts::default();
-    //let mut headers = HeaderMap::new();
-    //headers.insert(
+    //response.append_header(
     //    SET_COOKIE,
-    //    HeaderValue::from_str(&format!(
-    //        "SESSIONID={session_id}; Expires={date_string}; Secure; SameSite=Lax; HttpOnly; Path=/"
-    //    ))
-    //    .expect("to create header value"),
+    //    HeaderValue::from_str("ssr=true; SameSite=Lax; Path=/").expect("to create header value"),
     //);
     //log::trace!("valid session renewed: {session_id}");
-    //response_parts.headers = headers;
-    //response.overwrite(response_parts);
 }
 
 #[cfg(feature = "ssr")]
