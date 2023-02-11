@@ -57,7 +57,7 @@ pub fn ErrorTemplate(
 
     view! {cx,
         <Stylesheet id="leptos" href="/pkg/auth_example.css"/>
-
+        <h1>"Auth-Example"</h1>
         <h1>{if errors.len() > 1 {"Errors"} else {"Error"}}</h1>
         <For
             // a function that returns the items we're iterating over; a signal is fine

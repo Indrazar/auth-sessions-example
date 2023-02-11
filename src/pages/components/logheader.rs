@@ -23,7 +23,6 @@ async fn log_client_headers(cx: Scope) -> Result<String, ServerFnError> {
     // this is just an example of how to access server context injected in the handlers
     let http_req = use_context::<leptos_axum::RequestParts>(cx);
     if let Some(http_req) = http_req {
-        //log::debug!("http_req.path: {:#?}", &http_req.path());
         log::debug!(
             "Client pressed LogHeader, printing all data from client:\n\
             http_req.version: {:#?}\nhttp_req.method: {:#?}\nhttp_req.uri.path(): {:#?}\nhttp_req.headers: {:#?}\nhttp_req.body: {:#?}",
@@ -43,7 +42,6 @@ async fn log_client_headers(cx: Scope) -> Result<String, ServerFnError> {
             "meta_ctx: {:#?}",
             use_context::<leptos_meta::MetaContext>(cx)
         );
-        //log::debug!("")
     }
 
     Ok("It worked".to_string())

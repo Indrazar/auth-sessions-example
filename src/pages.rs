@@ -8,6 +8,8 @@ mod signuppage;
 use signuppage::*;
 mod loginpage;
 use loginpage::*;
+mod logoutpage;
+use logoutpage::*;
 mod components;
 mod homepage;
 use homepage::*;
@@ -20,6 +22,7 @@ pub fn register_server_functions() -> Result<(), ServerFnError> {
     signuppage::register_server_functions()?;
     homepage::register_server_functions()?;
     loginpage::register_server_functions()?;
+    logoutpage::register_server_functions()?;
     components::register_server_functions()?;
     Ok(())
 }
@@ -47,6 +50,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <Route path="/register" view=|cx| view! { cx, <SignupPage/> }/>
                     <Route path="/login" view=|cx| view! { cx, <LoginPage/> }/>
                     <Route path="/home" view=|cx| view! { cx, <HomePage/> }/>
+                    <Route path="/logout" view=|cx| view! {cx, <LogoutPage/> }/>
                 </Routes>
             </main>
         </Router>

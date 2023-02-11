@@ -92,12 +92,13 @@ pub fn LoggedInRedirect(
                             }
                         }
                         None => {
+                            //if no success_route do nothing
                             leptos::log!("session was valid, no redirect");
-                        } //if no success_route do nothing
-                    }, // if no success_route do nothing
-                    //redirect to fail_route if present
+                        }
+                    },
                     Some(Ok(false)) => match &fail_route {
                         Some(route) => {
+                            //redirect to fail_route if present
                             leptos::log!("session was invalid, redirecting to {route}");
                             match leptos_router::use_navigate(cx)(
                                 route.as_str(),
@@ -110,10 +111,11 @@ pub fn LoggedInRedirect(
                             }
                         }
                         None => {
+                            //if no fail_route do nothing
                             leptos::log!("session was invalid, no redirect");
-                        } //if no fail_route do nothing
+                        }
                     },
-                    _ => {}
+                    _ => {} // still waiting for action to complete
                 }
             });
         }

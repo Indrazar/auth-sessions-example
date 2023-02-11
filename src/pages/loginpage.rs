@@ -9,10 +9,9 @@ use leptos_router::*;
 cfg_if! { if #[cfg(feature = "ssr")] {
     use axum::{
         http::header::SET_COOKIE,
-        http::{HeaderMap, HeaderValue},
+        http::HeaderValue,
     };
     use chrono::prelude::*;
-    use leptos_axum::ResponseParts;
 
     pub fn register_server_functions() -> Result<(), ServerFnError> {
         ForceLogin::register()?;

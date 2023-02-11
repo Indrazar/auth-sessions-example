@@ -1,7 +1,7 @@
 #[cfg(feature = "ssr")]
 use crate::cookies::validate_session;
 use crate::pages::components::logheader::{LogHeader, LogHeaderProps};
-use crate::pages::components::logout::{LogoutButton, LogoutButtonProps};
+use crate::pages::components::logoutbutton::{LogoutButton, LogoutButtonProps};
 use crate::pages::components::redirect::{LoggedInRedirect, LoggedInRedirectProps};
 use leptos::*;
 
@@ -31,7 +31,9 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
             success_route=None
             fail_route=Some("/landing".to_string())
         />
-        <p>"Hello! " {page_data}</p>
+        <h1>"Auth-Example"</h1>
+        <h2>"Logged In Homepage"</h2>
+        <p>"Hello! "{page_data}</p>
         <p><LogHeader/></p>
         <p><LogoutButton/></p>
     }
