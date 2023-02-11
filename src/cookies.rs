@@ -125,15 +125,11 @@ pub fn set_ssr_cookie(cx: Scope) {
         Some(ro) => ro,
         None => return,
     };
-    let mut response_parts = ResponseParts::default();
-    let mut headers = HeaderMap::new();
-    headers.insert(
+    response.append_header(
         SET_COOKIE,
         HeaderValue::from_str("ssr=true; SameSite=Lax; Path=/").expect("to create header value"),
     );
     log::trace!("redirect set an ssr cookie");
-    response_parts.headers = headers;
-    response.overwrite(response_parts);
 }
 
 #[cfg(not(feature = "ssr"))]
