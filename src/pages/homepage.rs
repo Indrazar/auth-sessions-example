@@ -25,11 +25,13 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
             .map(|val| val.unwrap_or(String::default()))
             .unwrap_or(String::default())
     };
+    let mut ssr_state: bool = false;
 
     view! { cx,
         <LoggedInRedirect
             success_route=None
             fail_route=Some("/landing".to_string())
+            ssr_state=&mut ssr_state
         />
         <h1>"Auth-Example"</h1>
         <h2>"Logged In Homepage"</h2>

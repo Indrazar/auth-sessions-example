@@ -18,7 +18,6 @@ pub mod error_template;
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() -> Result<(), ServerFnError> {
-    //landingpage::register_server_functions()?;
     signuppage::register_server_functions()?;
     homepage::register_server_functions()?;
     loginpage::register_server_functions()?;
@@ -46,11 +45,11 @@ pub fn App(cx: Scope) -> impl IntoView {
             <main>
                 <Routes>
                     <Route path="" view=|cx| view! { cx, <LandingPage/> }/>
-                    <Route path="/landing" view=|cx| view! {cx, <CoreLandingPage/> }/>
-                    <Route path="/register" view=|cx| view! { cx, <SignupPage/> }/>
+                    <Route path="/landing" view=|cx| view! { cx, <CoreLandingPage/> }/>
+                    <Route path="/signup" view=|cx| view! { cx, <SignupPage/> }/>
                     <Route path="/login" view=|cx| view! { cx, <LoginPage/> }/>
                     <Route path="/home" view=|cx| view! { cx, <HomePage/> }/>
-                    <Route path="/logout" view=|cx| view! {cx, <LogoutPage/> }/>
+                    <Route path="/logout" view=|cx| view! { cx, <LogoutPage/> }/>
                 </Routes>
             </main>
         </Router>

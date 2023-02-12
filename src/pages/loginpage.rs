@@ -22,10 +22,12 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 /// Renders the non-logged in landing page.
 #[component]
 pub fn LoginPage(cx: Scope) -> impl IntoView {
+    let mut ssr_state: bool = false;
     view! { cx,
         <LoggedInRedirect
             success_route=Some("/home".to_string())
             fail_route=None
+            ssr_state=&mut ssr_state
         />
         <h1>"Auth-Example"</h1>
         <h2>"Login Page"</h2>

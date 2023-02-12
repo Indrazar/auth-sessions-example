@@ -1,3 +1,4 @@
+use crate::pages::components::csrf::{CSRFField, CSRFFieldProps};
 use crate::pages::components::logheader::{LogHeader, LogHeaderProps};
 use crate::pages::components::redirect::{LoggedInRedirect, LoggedInRedirectProps};
 use leptos::*;
@@ -15,6 +16,7 @@ pub fn register_server_functions() -> Result<(), ServerFnError> {
 #[component]
 pub fn SignupPage(cx: Scope) -> impl IntoView {
     let sign_up = create_server_action::<SignUp>(cx);
+    let mut ssr_state: bool = false;
 
     //let session = generate_or_use_token(cx);
 
@@ -24,6 +26,7 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
         <LoggedInRedirect
             success_route=Some("/home".to_string())
             fail_route=None
+            ssr_state=&mut ssr_state
         />
         <h1>"Auth-Example"</h1>
         <LogHeader/>
@@ -40,6 +43,7 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
                 //        }
                 //    };
                 //}
+                <CSRFField/>
                 <div>
                     <label for="username"><br/>"Username:"</label>
                     <input type="text" name="username" required value/><br/>
@@ -59,7 +63,7 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
     }
 }
 
-#[server(SignUp, "/register/submit")]
+#[server(SignUp, "/api")]
 pub async fn sign_up(cx: Scope) -> Result<(), ServerFnError> {
     Ok(())
 }

@@ -21,13 +21,14 @@ cfg_if! { if #[cfg(not(feature = "ssr"))] {
 
 #[component]
 pub fn LogoutPage(cx: Scope) -> impl IntoView {
+    let mut ssr_state: bool = false;
     cfg_if! { if #[cfg(feature = "ssr")] {
         destroy_session(cx);
         set_ssr_cookie(cx);
     }}
 
     #[cfg(not(feature = "ssr"))]
-    match consume_ssr_cookie() {
+    match consume_ssr_cookie(&mut ssr_state) {
         true => {
             //do nothing, ssr handled it
         }

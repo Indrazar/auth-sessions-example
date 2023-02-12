@@ -21,55 +21,53 @@ cfg_if! { if #[cfg(not(feature = "ssr"))] {
 /// if the cookie is not present then WASM will assume it navigated here
 /// through the hydration.
 #[component]
-pub fn LoggedInRedirect(
+pub fn LoggedInRedirect<'a>(
     cx: Scope,
     success_route: Option<String>,
     fail_route: Option<String>,
+    ssr_state: &'a mut bool,
 ) -> impl IntoView {
     #[cfg(feature = "ssr")]
-    match use_context::<ResponseOptions>(cx) {
+    if use_context::<ResponseOptions>(cx).is_some() {
         //todo remove this match statement once it doesn't panic
-        Some(_) => {
-            match validate_session(cx) {
-                true => {
-                    match success_route {
-                        //redirect to success_route if present
-                        Some(route) => {
-                            log::trace!("session was valid, redirecting to {route}");
-                            redirect(cx, route.as_str());
-                            set_ssr_cookie(cx);
-                        }
-                        //if none, set ssr cookie
-                        None => {
-                            log::trace!("session was valid, no redirect");
-                            set_ssr_cookie(cx)
-                        }
+        match validate_session(cx) {
+            true => {
+                match success_route {
+                    //redirect to success_route if present
+                    Some(route) => {
+                        log::trace!("session was valid, redirecting to {route}");
+                        redirect(cx, route.as_str());
+                        set_ssr_cookie(cx);
+                    }
+                    //if none, set ssr cookie
+                    None => {
+                        log::trace!("session was valid, no redirect");
+                        set_ssr_cookie(cx)
                     }
                 }
-                false => {
-                    match fail_route {
-                        //redirect to fail_route if present
-                        Some(route) => {
-                            log::trace!("session was invalid, redirecting to {route}");
-                            redirect(cx, route.as_str());
-                            set_ssr_cookie(cx);
-                        }
-                        //if none, set ssr cookie
-                        None => {
-                            log::trace!("session was invalid, no redirect");
-                            set_ssr_cookie(cx)
-                        }
+            }
+            false => {
+                match fail_route {
+                    //redirect to fail_route if present
+                    Some(route) => {
+                        log::trace!("session was invalid, redirecting to {route}");
+                        redirect(cx, route.as_str());
+                        set_ssr_cookie(cx);
+                    }
+                    //if none, set ssr cookie
+                    None => {
+                        log::trace!("session was invalid, no redirect");
+                        set_ssr_cookie(cx)
                     }
                 }
             }
         }
-        None => {}
     }
 
     #[cfg(not(feature = "ssr"))]
-    match consume_ssr_cookie() {
+    match consume_ssr_cookie(ssr_state) {
         true => {
-            //do nothing, ssr handled it
+            //do nothing to the page, ssr handled it
         }
         false => {
             //ssr did not run, so we query the server
@@ -121,7 +119,7 @@ pub fn LoggedInRedirect(
         }
     }
 
-    view! {cx, <div>"Redirect Present"</div>}
+    view! {cx, <></>} // redirect is non-visible
 }
 
 #[server(ProcessRedirect, "/api")]
