@@ -11,6 +11,8 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     };
     use chrono::prelude::*;
     use leptos_axum::{RequestParts, ResponseParts};
+} else {
+    use wasm_bindgen::JsCast;
 }}
 
 #[cfg(feature = "ssr")]

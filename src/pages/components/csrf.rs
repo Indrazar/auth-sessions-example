@@ -22,7 +22,7 @@ cfg_if! { if #[cfg(not(feature = "ssr"))] {
 /// if the cookie is not present then WASM will assume it navigated here
 /// through the hydration.
 #[component]
-pub fn CSRFField(cx: Scope /*, ssr_state: &'a mut bool */) -> impl IntoView {
+pub fn CSRFField(cx: Scope) -> impl IntoView {
     let csrf_action = create_server_action::<IssueCSRF>(cx);
     let csrf_resource = create_resource(
         cx,
@@ -41,41 +41,12 @@ pub fn CSRFField(cx: Scope /*, ssr_state: &'a mut bool */) -> impl IntoView {
             .unwrap_or(String::default())
     };
 
-    /*#[cfg(feature = "ssr")]
-    match use_context::<ResponseOptions>(cx) {
-        //todo remove this match statement once it doesn't panic
-        Some(_) => {
-            log::trace!("generating CSRF cookie and field value");
-            csrf_string = generate_csrf(cx);
-            set_ssr_cookie(cx);
-        }
-        None => {}
-    }
-
-    #[cfg(not(feature = "ssr"))]
-    match consume_ssr_cookie(ssr_state) {
-        true => {
-            //do nothing, ssr handled it
-        }
-        false => {
-            //ssr did not run, so we query the server
-
-            csrf_action.dispatch(IssueCSRF {});
-            create_effect(cx, move |_| {
-                match csrf_action.value().get() {
-                    //redirect to success_route if present
-                    Some(Ok(action_result)) => {
-                        csrf_string = action_result;
-                        leptos::log!("recieved csrf: {csrf_string}");
-                    }
-                    _ => {} // still waiting for action to complete
-                }
-            });
-        }
-    }*/
-
     // csrf component add a hidden field to forms
-    view! {cx, <input type="hidden" name="csrf" value=csrf_string()/>}
+    view! { cx,
+        <Suspense fallback={|| "Loading..."}>
+        <input type="hidden" name="csrf" value={ move || csrf_string() }/>
+        </Suspense>
+    }
 }
 
 #[server(IssueCSRF, "/api")]

@@ -24,7 +24,7 @@ By default, `cargo-leptos` uses `nightly` Rust, `cargo-generate`, and `sass`. If
 
 ## Installing OpenSSL on Windows
 
-[Guide from here](https://github.com/sfackler/rust-openssl/tree/5948898e54882c0bedd12d87569eb4dbee5bbca7#windows-msvc) (which has since been removed), but has been recently checked as working as recently as 12/15/2022. Instead of 1.x.x this was tested with the most recent 3.x.x and it did work at the time.
+[Guide from here](https://github.com/sfackler/rust-openssl/tree/5948898e54882c0bedd12d87569eb4dbee5bbca7#windows-msvc) (which has since been removed), but has been recently checked as working as recently as 2/12/2023. Instead of 1.x.x this was tested with the most recent 3.x.x and it did work at the time. The updated but far less detailed [guide is here](https://docs.rs/openssl/latest/openssl/#automatic). If you get OpenSSL installed some other way and have the environment variables the way rust openssl expects then jump to [Acquiring Root Certificates].(#acquiring-root-certificates)
 
 ### Installing OpenSSL using precompiled binaries
 
