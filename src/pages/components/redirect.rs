@@ -28,37 +28,34 @@ pub fn LoggedInRedirect<'a>(
     ssr_state: &'a mut bool,
 ) -> impl IntoView {
     #[cfg(feature = "ssr")]
-    if use_context::<ResponseOptions>(cx).is_some() {
-        //todo remove this match statement once it doesn't panic
-        match validate_session(cx) {
-            true => {
-                match success_route {
-                    //redirect to success_route if present
-                    Some(route) => {
-                        log::trace!("session was valid, redirecting to {route}");
-                        redirect(cx, route.as_str());
-                        set_ssr_cookie(cx);
-                    }
-                    //if none, set ssr cookie
-                    None => {
-                        log::trace!("session was valid, no redirect");
-                        set_ssr_cookie(cx)
-                    }
+    match validate_session(cx) {
+        true => {
+            match success_route {
+                //redirect to success_route if present
+                Some(route) => {
+                    log::trace!("session was valid, redirecting to {route}");
+                    redirect(cx, route.as_str());
+                    set_ssr_cookie(cx);
+                }
+                //if none, set ssr cookie
+                None => {
+                    log::trace!("session was valid, no redirect");
+                    set_ssr_cookie(cx);
                 }
             }
-            false => {
-                match fail_route {
-                    //redirect to fail_route if present
-                    Some(route) => {
-                        log::trace!("session was invalid, redirecting to {route}");
-                        redirect(cx, route.as_str());
-                        set_ssr_cookie(cx);
-                    }
-                    //if none, set ssr cookie
-                    None => {
-                        log::trace!("session was invalid, no redirect");
-                        set_ssr_cookie(cx)
-                    }
+        }
+        false => {
+            match fail_route {
+                //redirect to fail_route if present
+                Some(route) => {
+                    log::trace!("session was invalid, redirecting to {route}");
+                    redirect(cx, route.as_str());
+                    set_ssr_cookie(cx);
+                }
+                //if none, set ssr cookie
+                None => {
+                    log::trace!("session was invalid, no redirect");
+                    set_ssr_cookie(cx);
                 }
             }
         }

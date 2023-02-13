@@ -18,7 +18,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 #[cfg(feature = "ssr")]
 pub fn validate_session(cx: Scope) -> bool {
     // extract request, bailing if there is none
-    let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
+    let http_req = match use_context::<RequestParts>(cx) {
         Some(rp) => rp,       // actual user request
         None => return false, // no request, building routes in main.rs
     };
@@ -42,14 +42,17 @@ pub fn validate_session(cx: Scope) -> bool {
 
 #[cfg(feature = "ssr")]
 fn parse_session_cookie(req: RequestParts) -> String {
-    let cookies = match req.headers.get(COOKIE) {
-        Some(t) => t.to_str().unwrap_or_default(),
-        None => return String::default(),
-    };
-    match get_cookie_value(cookies, "SESSIONID") {
-        Some(t) => t,
-        None => String::default(),
+    for headercookie in req.headers.get_all(COOKIE).iter() {
+        match headercookie.to_str() {
+            Ok(cookie) => {
+                if let Some(session) = get_cookie_value(cookie, "SESSIONID") {
+                    return session;
+                }
+            }
+            Err(_) => continue,
+        }
     }
+    String::default()
 }
 
 #[cfg(feature = "ssr")]
