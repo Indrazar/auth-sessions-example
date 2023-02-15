@@ -21,6 +21,7 @@ use axum::{
 use axum_server::tls_rustls::RustlsConfig;
 use leptos::*;
 use leptos_axum::*;
+use tower_http::compression::CompressionLayer;
 
 use std::{fs, net::SocketAddr, path::PathBuf, sync::Arc};
 }}
@@ -85,7 +86,8 @@ async fn main() {
             view! { cx, <App/> }
         })
         .fallback(file_and_error_handler)
-        .layer(Extension(Arc::new(leptos_options)));
+        .layer(Extension(Arc::new(leptos_options)))
+        .layer(CompressionLayer::new());
 
     // spawn a redirect http to https
     tokio::spawn(redirect_http_to_https(ports));
