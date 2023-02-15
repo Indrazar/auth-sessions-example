@@ -129,14 +129,14 @@ async fn redirect_http_to_https(ports: Ports) {
         match make_https(host, uri, ports) {
             Ok(uri) => Ok(Redirect::temporary(&uri.to_string())),
             Err(error) => {
-                tracing::warn!(%error, "failed to convert URI to HTTPS");
+                log::warn!("error: {:#?}, failed to convert URI to HTTPS", error);
                 Err(StatusCode::BAD_REQUEST)
             }
         }
     };
 
     let addr = SocketAddr::from(([127, 0, 0, 1], ports.http));
-    tracing::debug!("http redirect listening on {}", addr);
+    log::debug!("http redirect listening on {}", addr);
 
     axum::Server::bind(&addr)
         .serve(redirect.into_make_service())
