@@ -126,8 +126,10 @@ pub fn generate_csrf(cx: Scope) -> String {
     let csrf_string = String::from("valid");
     response.append_header(
         SET_COOKIE,
-        HeaderValue::from_str(format!("csrf={csrf_string}; SameSite=Lax; Path=/").as_str())
-            .expect("to create header value"),
+        HeaderValue::from_str(
+            format!("__Host-csrf={csrf_string}; Secure; HttpOnly; SameSite=Lax; Path=/").as_str(),
+        )
+        .expect("to create header value"),
     );
     log::trace!("provided a csrf cookie");
     csrf_string

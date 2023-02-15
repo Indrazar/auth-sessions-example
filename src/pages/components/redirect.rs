@@ -80,7 +80,7 @@ pub fn LoggedInRedirect<'a>(
                                 route.as_str(),
                                 NavigateOptions::default(),
                             ) {
-                                Ok(_) => (),
+                                Ok(_) => {}
                                 Err(e) => {
                                     leptos::log!("{:#?}", e);
                                 }
@@ -99,7 +99,7 @@ pub fn LoggedInRedirect<'a>(
                                 route.as_str(),
                                 NavigateOptions::default(),
                             ) {
-                                Ok(_) => (),
+                                Ok(_) => {}
                                 Err(e) => {
                                     leptos::log!("{:#?}", e);
                                 }
