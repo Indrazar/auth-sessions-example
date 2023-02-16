@@ -32,24 +32,22 @@ pub fn CSRFField(cx: Scope) -> impl IntoView {
             issue_csrf(cx)
         },
     );
-    let csrf_string = move || {
-        csrf_resource
-            .read()
-            .map(|n| n.ok())
-            .flatten()
-            .map(|n| n)
-            .unwrap_or(String::default())
-    };
 
-    // csrf component add a hidden field to forms
+    // csrf component adds a hidden field to forms to mitigate csrf
     view! { cx,
-        <Suspense fallback={|| "Loading..."}>
-        <input type="hidden" name="csrf" value={ move || csrf_string() }/>
+        <Suspense fallback={move || view! {cx, <div>"Loading..."</div>}}>
+            {move || {
+                csrf_resource.read().map(|n| match n {
+                    Err(_) => view! {cx, <div>"Page Load Failed. Please reload the page or try again later."</div>},
+                    Ok(csrf) => view! {cx, <div><input type="hidden" name="csrf" value=csrf/></div>},
+                })
+            }}
         </Suspense>
     }
 }
 
 #[server(IssueCSRF, "/api")]
 async fn issue_csrf(cx: Scope) -> Result<String, ServerFnError> {
+    //tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     Ok(generate_csrf(cx))
 }

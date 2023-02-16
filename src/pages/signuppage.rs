@@ -43,19 +43,21 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
                 //        }
                 //    };
                 //}
-                <CSRFField/>
                 <div>
-                    <label for="username"><br/>"Username:"</label>
-                    <input type="text" name="username" required value/><br/>
+                    <CSRFField/>
                 </div>
-                <div>
-                    <label for="display"><br/>"Display Name:"</label>
+                <p>
+                    <label for="username">"Username:"</label>
+                    <input type="text" name="username" required value/>
+                </p>
+                <p>
+                    <label for="display">"Display Name:"</label>
                     <input type="text" name="display" required value/>
-                </div>
-                <div>
-                    <label for="email"><br/>"E-Mail Address:"</label>
+                </p>
+                <p>
+                    <label for="email">"E-Mail Address:"</label>
                     <input type="text" name="email" required value/>
-                </div>
+                </p>
                 //<div>
                 //</div>
             </ActionForm>
