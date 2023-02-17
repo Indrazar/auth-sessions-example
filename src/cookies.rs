@@ -1,5 +1,6 @@
 use cfg_if::cfg_if;
 use leptos::*;
+use leptos_server::ServerFnError;
 
 //#[cfg(feature = "ssr")]
 //use axum_extra::extract::cookie::Cookie;
@@ -38,6 +39,38 @@ pub fn validate_session(cx: Scope) -> bool {
     //    HeaderValue::from_str("ssr=true; SameSite=Lax; Path=/").expect("to create header value"),
     //);
     //log::trace!("valid session renewed: {session_id}");
+}
+
+#[cfg(feature = "ssr")]
+pub fn validate_csrf(req: RequestParts, csrf_token: String) -> Result<(), ServerFnError> {
+    let mut only_one = 0;
+    let mut cookie_value = String::default();
+    for headercookie in req.headers.get_all(COOKIE).iter() {
+        match headercookie.to_str() {
+            Ok(cookie) => {
+                if let Some(csrf_cookie) = get_cookie_value(cookie, "__Host-csrf") {
+                    only_one += 1;
+                    if only_one > 1 {
+                        // multiple cookies with the same value is an out
+                        // of date browser or some other fixation attack
+                        return Err(ServerFnError::ServerError(String::from(
+                            "Signup Request was invalid.",
+                        )));
+                    }
+                    cookie_value = csrf_cookie;
+                }
+            }
+            Err(_) => continue,
+        }
+    }
+    if !(cookie_value.eq(&csrf_token)) {
+        Err(ServerFnError::ServerError(String::from(
+            "Signup Request was invalid.",
+        )))
+    } else {
+        log::trace!("csrf cookie+token was validated");
+        Ok(())
+    }
 }
 
 #[cfg(feature = "ssr")]

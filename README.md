@@ -1,6 +1,10 @@
 # Does This Work?
 No. It's mostly a learning experience and I have no idea what I am doing. This section will disappear once it is a more serious template.
 
+# Notes about Spam
+Opening this to the greater internet is likey a VERY BAD idea unless you at a minimum implement recaptcha (just an example, not a recommendation) and/or other bot mitigations.
+The bots will arrive and they will sell you uggs.
+
 # Leptos Auth-Example
 
 This project is made with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum).
@@ -24,7 +28,7 @@ By default, `cargo-leptos` uses `nightly` Rust, `cargo-generate`, and `sass`. If
 
 ## Installing OpenSSL on Windows
 
-[Guide from here](https://github.com/sfackler/rust-openssl/tree/5948898e54882c0bedd12d87569eb4dbee5bbca7#windows-msvc) (which has since been removed), but has been recently checked as working as recently as 2/12/2023. Instead of 1.x.x this was tested with the most recent 3.x.x and it did work at the time. The updated but far less detailed [guide is here](https://docs.rs/openssl/latest/openssl/#automatic). If you get OpenSSL installed some other way and have the environment variables the way rust openssl expects then jump to [Acquiring Root Certificates].(#acquiring-root-certificates)
+[Guide from here](https://github.com/sfackler/rust-openssl/tree/5948898e54882c0bedd12d87569eb4dbee5bbca7#windows-msvc) (which has since been removed), but has been recently checked as working as recently as 2/12/2023. Instead of 1.x.x this was tested with the most recent 3.x.x and it did work at the time. The updated but far less detailed [guide is here](https://docs.rs/openssl/latest/openssl/#automatic). If you get OpenSSL installed some other way and have the environment variables the way rust openssl expects then jump to [Acquiring Root Certificates](#acquiring-root-certificates).
 
 ### Installing OpenSSL using precompiled binaries
 
@@ -62,7 +66,6 @@ You will need a self signed cert for TLS for Dev purposes. The command when usin
 openssl req -newkey rsa:2048 -nodes -keyout self_signed_certs/key.pem -x509 -days 365 -out self_signed_certs/certificate.pem
 ```
 
-
 ## Running in dev mode
 
 ```bash
@@ -88,12 +91,13 @@ Copy these files to your remote server. The directory structure should be:
 auth-example
 site/
 ```
-Set the following enviornment variables (updating as needed):
+Set the following environment variables (updating as needed):
 ```text
 LEPTOS_OUTPUT_NAME="auth-example"
 LEPTOS_SITE_ROOT="site"
 LEPTOS_SITE_PKG_DIR="pkg"
-LEPTOS_SITE_ADDR="127.0.0.1:3000"
-LEPTOS_RELOAD_PORT="3001"
+LEPTOS_SITE_ADDR="0.0.0.0:443"
 ```
+LEPTOS_SITE_ADDR highly depends on where and how you are deploying it.
+
 Finally, run the server binary.
