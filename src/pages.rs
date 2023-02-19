@@ -35,10 +35,10 @@ pub fn App(cx: Scope) -> impl IntoView {
         cx,
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
-        <Stylesheet id="leptos" href="/pkg/auth_example.css"/>
+        <Stylesheet id="leptos" href="/pkg/auth_no_middleware.css"/>
 
         // sets the document title
-        <Title text="Auth-Example: A Letpos HTTPS Auth Example"/>
+        <Title text="Auth-No-Middleware: A Letpos HTTPS Auth Example"/>
 
         // content for this app
         <Router>

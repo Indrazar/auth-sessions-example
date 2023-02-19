@@ -36,7 +36,7 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
             fail_route=None
             ssr_state=&mut ssr_state
         />
-        <h1>"Auth-Example"</h1>
+        <h1>"Auth-No-Middleware"</h1>
         <LogHeader/>
         <h2>"Sign Up"</h2>
         <h3>"Redirect after Submit Not Implemented Yet"</h3>

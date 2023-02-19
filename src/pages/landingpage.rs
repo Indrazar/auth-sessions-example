@@ -21,7 +21,7 @@ pub fn LandingPage(cx: Scope) -> impl IntoView {
 #[component]
 pub fn CoreLandingPage(cx: Scope) -> impl IntoView {
     view! { cx,
-        <h1>"Auth-Example"</h1>
+        <h1>"Auth-No-Middleware"</h1>
         <h2>"A Letpos HTTPS Auth Example"</h2>
         <LogHeader/>
         <p><a href="/signup" class="button-white">"Sign Up"</a></p>

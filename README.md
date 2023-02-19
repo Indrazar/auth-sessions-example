@@ -5,7 +5,7 @@ No. It's mostly a learning experience and I have no idea what I am doing. This s
 Opening this to the greater internet is likey a VERY BAD idea unless you at a minimum implement recaptcha (just an example, not a recommendation) and/or other bot mitigations.
 The bots will arrive and they will sell you uggs.
 
-# Leptos Auth-Example
+# Leptos Auth-No-Middleware
 
 This project is made with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum).
 
@@ -98,12 +98,12 @@ The code supports `gzip`-ing all files within the `site` directory ahead (or eve
 
 Copy these files to your remote server. The directory structure should be:
 ```text
-auth-example
+auth-no-middleware
 site/
 ```
 Set the following environment variables (updating as needed):
 ```text
-LEPTOS_OUTPUT_NAME="auth-example"
+LEPTOS_OUTPUT_NAME="auth-no-middleware"
 LEPTOS_SITE_ROOT="site"
 LEPTOS_SITE_PKG_DIR="pkg"
 LEPTOS_SITE_ADDR="0.0.0.0:443"

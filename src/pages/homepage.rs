@@ -35,7 +35,7 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
             fail_route=Some("/landing".to_string())
             ssr_state=&mut ssr_state
         />
-        <h1>"Auth-Example"</h1>
+        <h1>"Auth-No-Middleware"</h1>
         <h2>"Logged In Homepage"</h2>
         <p>"Hello! "{page_data}</p>
         <LogHeader/>

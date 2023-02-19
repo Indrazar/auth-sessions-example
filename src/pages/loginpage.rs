@@ -25,7 +25,7 @@ pub fn LoginPage(cx: Scope) -> impl IntoView {
             fail_route=None
             ssr_state=&mut ssr_state
         />
-        <h1>"Auth-Example"</h1>
+        <h1>"Auth-No-Middleware"</h1>
         <h2>"Login Page"</h2>
         //<button on:click=on_click>"Click Me: " {count}</button>
         <LogHeader/>
