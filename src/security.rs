@@ -224,10 +224,10 @@ pub async fn validate_credentials(
     let (true_uuid, stored_phc): (Uuid, SecretString) = match row {
         Ok(cred) => (cred.user_id, SecretString::from(cred.password_hash)),
         Err(e) => {
-            log::trace!("invalid login on username: {username} with error {e}");
             //execute some time wasting to prevent username enumeration
             let _task =
                 tokio::task::spawn_blocking(move || spin_hash(untrusted_password)).await;
+            log::trace!("invalid login on username: {username} with error {e}");
             return Err(ServerFnError::ServerError(String::from(
                 "Login Request was invalid.",
             )));
@@ -300,7 +300,14 @@ fn verify_hash(
 #[cfg(feature = "ssr")]
 #[allow(unused_must_use)]
 fn spin_hash(untrusted_password: SecretString) {
-    let static_hash = PasswordHash::new("").unwrap();
+    // forever TODO: update this hash as we improve the gen_hash
+    // notes about this hash: it is not a real hash, just to waste time using the same algo.
+    // This hash is NOT a secret. This function returns NOTHING, only wastes time.
+    let static_hash = PasswordHash::new(
+        "$argon2id$v=19$m=4096,t=3,p=1$tKyUZbQxabvC3XB323vWmw$mMtsEupAXrnh00lI/\
+         6kPHNpIGntadmxH/Hlr3i29CH0",
+    )
+    .unwrap();
 
     Argon2::default()
         .verify_password(untrusted_password.expose_secret().as_bytes(), &static_hash)
