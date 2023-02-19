@@ -88,7 +88,7 @@ pub async fn validate_registration(
 ) -> Result<(), ServerFnError> {
     let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
         None => {
-            log::error!("could not retrieve RequestParts");
+            log::error!("signup: could not retrieve RequestParts");
             return Err(ServerFnError::ServerError(String::from(
                 "Signup Request failed.",
             )));
@@ -98,11 +98,11 @@ pub async fn validate_registration(
     //validate token matches cookie
     validate_csrf(http_req, csrf).map_err(|e| match e {
         CsrfError::MultipleCookies => {
-            log::trace!("multiple cookies present on client request");
+            log::trace!("signup: multiple cookies present on client request");
             ServerFnError::ServerError(String::from("Signup Request was invalid."))
         }
         CsrfError::NoMatchingCookie => {
-            log::trace!("csrf did not match cookie");
+            log::trace!("signup: csrf did not match cookie");
             ServerFnError::ServerError(String::from("Signup Request was invalid."))
         }
     })?;
@@ -144,15 +144,48 @@ pub async fn validate_registration(
     unique_cred_check(UniqueCredential::DisplayName(displayname.clone())).await?;
     //unique_cred_check(UniqueCredential::Email(email)).await?;
     let password_hash = gen_hash(password)?;
-    log::trace!("successful new registration for user: {username}, name: {displayname}");
+    log::trace!("signup: successful registration for user: {username}, name: {displayname}");
     register_user(username, displayname, email, password_hash).await?;
+    log::trace!("signup: db write succeeded for new user");
+    Ok(())
+}
+
+#[cfg(feature = "ssr")]
+pub async fn validate_login(
+    cx: Scope,
+    csrf: String,
+    username: String,
+    password: SecretString,
+) -> Result<(), ServerFnError> {
+    let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
+        None => {
+            log::error!("login: could not retrieve RequestParts");
+            return Err(ServerFnError::ServerError(String::from(
+                "Login Request failed.",
+            )));
+        }
+        Some(rp) => rp,
+    };
+    //validate token matches cookie
+    validate_csrf(http_req, csrf).map_err(|e| match e {
+        CsrfError::MultipleCookies => {
+            log::trace!("login: multiple cookies present on client request");
+            ServerFnError::ServerError(String::from("Login Request was invalid."))
+        }
+        CsrfError::NoMatchingCookie => {
+            log::trace!("login: csrf did not match cookie");
+            ServerFnError::ServerError(String::from("Login Request was invalid."))
+        }
+    })?;
+    validate_credentials(username.clone(), password).await?;
+    log::trace!("login: successful login for user: {username}");
     Ok(())
 }
 
 #[cfg(feature = "ssr")]
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, sqlx::FromRow)]
 struct ValidateCredential {
-    user_id: String,
+    user_id: Uuid,
     password_hash: String,
 }
 
@@ -167,13 +200,13 @@ pub async fn validate_credentials(
     username: String,
     untrusted_password: SecretString,
 ) -> Result<uuid::Uuid, leptos_server::ServerFnError> {
-    //TODO consider moving this to database.rs
+    //TODO consider moving some of this to database.rs
     let mut conn = match db().await {
         Ok(res) => res,
         Err(e) => {
             log::error!("failed to connect to database in validate_credentials: {e}");
             return Err(ServerFnError::ServerError(String::from(
-                "Signin Request failed.",
+                "Login Request failed.",
             )));
         }
     };
@@ -182,33 +215,21 @@ pub async fn validate_credentials(
     //)
     let row = sqlx::query_as!(
         ValidateCredential,
-        "SELECT user_id, password_hash FROM users WHERE username = ?",
+        r#"SELECT user_id AS "user_id: Uuid", password_hash FROM users WHERE username = ?"#,
         username
     )
     .fetch_one(&mut conn)
     .await;
 
-    let (true_uuid, stored_phc) = match row {
-        Ok(cred) => (
-            match Uuid::parse_str(cred.user_id.as_str()) {
-                Ok(id) => id,
-                Err(e) => {
-                    //database is possibly corrupted
-                    log::error!("could not parse uuid for {username} with error {e}");
-                    return Err(ServerFnError::ServerError(String::from(
-                        "Signin Request failed.",
-                    )));
-                }
-            },
-            SecretString::from(cred.password_hash),
-        ),
+    let (true_uuid, stored_phc): (Uuid, SecretString) = match row {
+        Ok(cred) => (cred.user_id, SecretString::from(cred.password_hash)),
         Err(e) => {
             log::trace!("invalid login on username: {username} with error {e}");
             //execute some time wasting to prevent username enumeration
             let _task =
                 tokio::task::spawn_blocking(move || spin_hash(untrusted_password)).await;
             return Err(ServerFnError::ServerError(String::from(
-                "Signin Request was invalid.",
+                "Login Request was invalid.",
             )));
         }
     };
@@ -220,19 +241,19 @@ pub async fn validate_credentials(
             //database is possibly corrupted
             log::error!("could not parse PHC for {username} with error {e}");
             Err(ServerFnError::ServerError(String::from(
-                "Signin Request failed.",
+                "Login Request failed.",
             )))
         }
         Ok(Err(ValidateHashError::VerifyError(e))) => {
             log::trace!("invalid password attempt for {username} with error {e}");
             Err(ServerFnError::ServerError(String::from(
-                "Signin Request was invalid.",
+                "Login Request was invalid.",
             )))
         }
         Err(tokio_err) => {
             log::error!("failed to spawn blocking tokio task: {tokio_err}");
             Err(ServerFnError::ServerError(String::from(
-                "Signin Request failed.",
+                "Login Request failed.",
             )))
         }
     }

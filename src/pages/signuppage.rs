@@ -26,10 +26,6 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
     let mut ssr_state: bool = false;
     let submit_disabled = false;
 
-    //let session = generate_or_use_token(cx);
-
-    //retrieve_token
-
     view! { cx,
         <LoggedInRedirect
             success_route=Some("/home".to_string())

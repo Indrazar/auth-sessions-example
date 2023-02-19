@@ -1,4 +1,5 @@
 use crate::pages::components::{
+    csrf::{CSRFField, CSRFFieldProps},
     logheader::{LogHeader, LogHeaderProps},
     redirect::{LoggedInRedirect, LoggedInRedirectProps},
 };
@@ -8,9 +9,12 @@ use leptos_router::*;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::force_create_session;
+    use crate::security::validate_login;
+    use secrecy::SecretString;
 
     pub fn register_server_functions() -> Result<(), ServerFnError> {
         ForceLogin::register()?;
+        Login::register()?;
         Ok(())
     }
 }}
@@ -19,6 +23,9 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 #[component]
 pub fn LoginPage(cx: Scope) -> impl IntoView {
     let mut ssr_state: bool = false;
+    let login = create_server_action::<Login>(cx);
+    let submit_disabled = false;
+
     view! { cx,
         <LoggedInRedirect
             success_route=Some("/home".to_string())
@@ -27,9 +34,20 @@ pub fn LoginPage(cx: Scope) -> impl IntoView {
         />
         <h1>"Auth-No-Middleware"</h1>
         <h2>"Login Page"</h2>
-        //<button on:click=on_click>"Click Me: " {count}</button>
         <LogHeader/>
         <GenerateSession/>
+        <ActionForm action=login>
+                <CSRFField/>
+                <p>
+                    <label for="username">"Username:"</label>
+                    <input type="text" name="username" required value/>
+                </p>
+                <p>
+                    <label for="password">"Password:"</label>
+                    <input type="password" name="password" required value/>
+                </p>
+                    <input type="submit" disabled=submit_disabled value="Login"/>
+            </ActionForm>
         <p><a href="/home">"Check if session is valid"</a></p>
         <p><a href="/">"Return to landing page"</a></p>
     }
@@ -57,4 +75,14 @@ pub fn GenerateSession(cx: Scope) -> impl IntoView {
 pub async fn force_login(cx: Scope) -> Result<(), ServerFnError> {
     force_create_session(cx);
     Ok(())
+}
+
+#[server(Login, "/api")]
+pub async fn login(
+    cx: Scope,
+    csrf: String,
+    username: String,
+    password: String,
+) -> Result<(), ServerFnError> {
+    validate_login(cx, csrf, username, SecretString::from(password)).await
 }

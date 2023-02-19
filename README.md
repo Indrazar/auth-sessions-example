@@ -7,7 +7,7 @@ The bots will arrive and they will sell you uggs.
 
 # Leptos Auth-No-Middleware
 
-This project is made with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum).
+This project is made with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum) but without using [axum-sessions](https://github.com/maxcountryman/axum-sessions). You should probally use axum-sessions and not this.
 
 ## Installing cargo-leptos
 
