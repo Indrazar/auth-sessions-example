@@ -20,3 +20,6 @@ playwright/.cache/
 
 # only for dev use
 self_signed_certs/
+
+# environment vars
+.env

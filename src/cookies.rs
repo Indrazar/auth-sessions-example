@@ -1,20 +1,37 @@
 use cfg_if::cfg_if;
 use leptos::*;
-use leptos_server::ServerFnError;
-
-//#[cfg(feature = "ssr")]
-//use axum_extra::extract::cookie::Cookie;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use axum::{
         http::header::{COOKIE, SET_COOKIE},
-        http::{HeaderMap, HeaderValue},
+        http::HeaderValue,
     };
     use chrono::prelude::*;
-    use leptos_axum::{RequestParts, ResponseParts};
+    use leptos_axum::RequestParts;
 } else {
     use wasm_bindgen::JsCast;
 }}
+
+/// delete this TODO REMOVE
+#[cfg(feature = "ssr")]
+pub fn force_create_session(cx: Scope) {
+    let session_id = "10".to_string();
+    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
+        Some(ro) => ro,
+        None => return,
+    };
+    let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
+    let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
+    response.append_header(
+        SET_COOKIE,
+        HeaderValue::from_str(&format!(
+            "SESSIONID={session_id}; Expires={date_string}; Secure; SameSite=Lax; HttpOnly; \
+             Path=/"
+        ))
+        .expect("to create header value"),
+    );
+    log::trace!("new session force generated: {session_id}");
+}
 
 #[cfg(feature = "ssr")]
 pub fn validate_session(cx: Scope) -> bool {
@@ -42,38 +59,6 @@ pub fn validate_session(cx: Scope) -> bool {
 }
 
 #[cfg(feature = "ssr")]
-pub fn validate_csrf(req: RequestParts, csrf_token: String) -> Result<(), ServerFnError> {
-    let mut only_one = 0;
-    let mut cookie_value = String::default();
-    for headercookie in req.headers.get_all(COOKIE).iter() {
-        match headercookie.to_str() {
-            Ok(cookie) => {
-                if let Some(csrf_cookie) = get_cookie_value(cookie, "__Host-csrf") {
-                    only_one += 1;
-                    if only_one > 1 {
-                        // multiple cookies with the same value is an out
-                        // of date browser or some other fixation attack
-                        return Err(ServerFnError::ServerError(String::from(
-                            "Signup Request was invalid.",
-                        )));
-                    }
-                    cookie_value = csrf_cookie;
-                }
-            }
-            Err(_) => continue,
-        }
-    }
-    if !(cookie_value.eq(&csrf_token)) {
-        Err(ServerFnError::ServerError(String::from(
-            "Signup Request was invalid.",
-        )))
-    } else {
-        log::trace!("csrf cookie+token was validated");
-        Ok(())
-    }
-}
-
-#[cfg(feature = "ssr")]
 fn parse_session_cookie(req: RequestParts) -> String {
     for headercookie in req.headers.get_all(COOKIE).iter() {
         match headercookie.to_str() {
@@ -89,7 +74,7 @@ fn parse_session_cookie(req: RequestParts) -> String {
 }
 
 #[cfg(feature = "ssr")]
-fn get_cookie_value(cookies: &str, key: &str) -> Option<String> {
+pub fn get_cookie_value(cookies: &str, key: &str) -> Option<String> {
     cookies.split(';').find_map(|cookie| {
         let cookie_arr = cookie.split_once('=').unwrap_or_default();
         if cookie_arr.0.trim().eq(key) && !cookie_arr.1.trim().is_empty() {
@@ -102,6 +87,7 @@ fn get_cookie_value(cookies: &str, key: &str) -> Option<String> {
 
 #[cfg(feature = "ssr")]
 fn validate_token(suspect_session: &str) -> bool {
+    //TODO: use database call
     match suspect_session {
         "10" => true,
         _ => false,
@@ -118,7 +104,8 @@ pub fn set_ssr_cookie(cx: Scope) {
     };
     response.append_header(
         SET_COOKIE,
-        HeaderValue::from_str("ssr=true; SameSite=Lax; Path=/").expect("to create header value"),
+        HeaderValue::from_str("ssr=true; SameSite=Lax; Path=/")
+            .expect("to create header value"),
     );
     log::trace!("redirect set an ssr cookie");
 }
@@ -131,7 +118,7 @@ pub fn set_ssr_cookie(cx: Scope) {
 #[cfg(not(feature = "ssr"))]
 pub fn consume_ssr_cookie(ssr_state: &mut bool) -> bool {
     match *ssr_state {
-        true => return true, // don't need to do anything, this function already ran and consumed the cookie
+        true => return true, /* don't need to do anything, this function already ran and consumed the cookie */
         false => {}          // continue below
     }
     let doc = document().unchecked_into::<web_sys::HtmlDocument>();
@@ -140,7 +127,8 @@ pub fn consume_ssr_cookie(ssr_state: &mut bool) -> bool {
     match result {
         true => {
             doc.set_cookie(
-                "ssr=deleted; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0; SameSite=Lax; Path=/",
+                "ssr=deleted; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0; \
+                 SameSite=Lax; Path=/",
             )
             .expect("could not delete cookie");
             (*ssr_state) = true;
@@ -148,22 +136,4 @@ pub fn consume_ssr_cookie(ssr_state: &mut bool) -> bool {
         }
         false => false,
     }
-}
-
-#[cfg(feature = "ssr")]
-pub fn generate_csrf(cx: Scope) -> String {
-    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
-        Some(ro) => ro,
-        None => return String::default(),
-    };
-    let csrf_string = String::from("valid");
-    response.append_header(
-        SET_COOKIE,
-        HeaderValue::from_str(
-            format!("__Host-csrf={csrf_string}; Secure; HttpOnly; SameSite=Lax; Path=/").as_str(),
-        )
-        .expect("to create header value"),
-    );
-    log::trace!("provided a csrf cookie");
-    csrf_string
 }

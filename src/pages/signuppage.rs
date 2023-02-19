@@ -1,11 +1,15 @@
-use crate::pages::components::csrf::{CSRFField, CSRFFieldProps};
-use crate::pages::components::logheader::{LogHeader, LogHeaderProps};
-use crate::pages::components::redirect::{LoggedInRedirect, LoggedInRedirectProps};
+use crate::pages::components::{
+    csrf::{CSRFField, CSRFFieldProps},
+    logheader::{LogHeader, LogHeaderProps},
+    redirect::{LoggedInRedirect, LoggedInRedirectProps},
+};
+#[cfg(feature = "ssr")]
+use crate::security::validate_registration;
+//use crate::security::register_user;
 use leptos::*;
 use leptos_router::*;
-
 #[cfg(feature = "ssr")]
-use crate::cookies::validate_csrf;
+use secrecy::{ExposeSecret, SecretString};
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() -> Result<(), ServerFnError> {
@@ -20,6 +24,7 @@ pub fn register_server_functions() -> Result<(), ServerFnError> {
 pub fn SignupPage(cx: Scope) -> impl IntoView {
     let sign_up = create_server_action::<SignUp>(cx);
     let mut ssr_state: bool = false;
+    let submit_disabled = false;
 
     //let session = generate_or_use_token(cx);
 
@@ -34,7 +39,7 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
         <h1>"Auth-Example"</h1>
         <LogHeader/>
         <h2>"Sign Up"</h2>
-        <h3>"Not Implemented Yet"</h3>
+        <h3>"Redirect after Submit Not Implemented Yet"</h3>
         <p>
             <ActionForm action=sign_up>
                 <CSRFField/>
@@ -62,7 +67,7 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
                     <label for="password_confirmation">"Password (Confirmation):"</label>
                     <input type="password" name="password_confirmation" required value/>
                 </p>
-                    <input type="submit" value="Sign Up"/>
+                    <input type="submit" disabled=submit_disabled value="Sign Up"/>
             </ActionForm>
         </p>
         <a href="/">"Go Back"</a>
@@ -80,16 +85,15 @@ pub async fn sign_up(
     password: String,
     password_confirmation: String,
 ) -> Result<(), ServerFnError> {
-    let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
-        Some(rp) => rp, // actual user request
-        None => {
-            return Err(ServerFnError::ServerError(String::from(
-                "Signup Request was invalid.",
-            )))
-        } // no request, building routes in main.rs
-    };
-    validate_csrf(http_req, csrf)?;
-    //parse_session_cookie(http_req);
-    //validate_token(unverified_session_id.as_str())
-    Ok(())
+    validate_registration(
+        cx,
+        csrf,
+        username,
+        display,
+        email,
+        email_confirmation,
+        SecretString::from(password),
+        SecretString::from(password_confirmation),
+    )
+    .await
 }

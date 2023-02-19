@@ -42,7 +42,7 @@ pub fn LogoutPage(cx: Scope) -> impl IntoView {
     view! {cx,
         <h1>"Auth-Example"</h1>
         <h2>"Logout Page"</h2>
-        <p><LogHeader/></p>
+        <LogHeader/>
         <p><a href="/">"Return to Landing Page"</a></p>
         <p><a href="/login">"Login Again"</a></p>
     }
@@ -63,7 +63,8 @@ fn destroy_session(cx: Scope) {
     response.append_header(
         SET_COOKIE,
         HeaderValue::from_str(
-            "SESSIONID=deleted; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0; Secure; SameSite=Lax; HttpOnly; Path=/"
+            "SESSIONID=deleted; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0; Secure; \
+             SameSite=Lax; HttpOnly; Path=/",
         )
         .expect("to create header value"),
     );

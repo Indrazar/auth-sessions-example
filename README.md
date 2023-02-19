@@ -19,12 +19,12 @@ cargo install cargo-leptos
 
 By default, `cargo-leptos` uses `nightly` Rust, `cargo-generate`, and `sass`. If you run into any trouble, you may need to install one or more of these tools.
 
-
 1. `rustup toolchain install nightly` - make sure you have Rust nightly
 2. `rustup default nightly` - setup nightly as default for ease-of-use, remember to switch back to `rustup default stable` when you're done
 3. `rustup target add wasm32-unknown-unknown` - add the ability to compile Rust to WebAssembly
-4. `cargo install cargo-generate` - install `cargo-generate`
-5. `npm install -g sass` - install `dart-sass`
+4. `cargo install cargo-generate` - to install `cargo-generate`
+5. `cargo install sqlx-cli` - to install `sqlx`
+6. `npm install -g sass` - to install `dart-sass`
 
 ## Installing OpenSSL on Windows
 
@@ -66,6 +66,14 @@ You will need a self signed cert for TLS for Dev purposes. The command when usin
 openssl req -newkey rsa:2048 -nodes -keyout self_signed_certs/key.pem -x509 -days 365 -out self_signed_certs/certificate.pem
 ```
 
+## Environment and Database Setup
+1. First copy `.env.example` into `.env` and make sure the settings are correct. (Important for next step).
+2. Generate a new database and apply the included migration.
+```
+sqlx database create
+sqlx migrate run
+```
+
 ## Running in dev mode
 
 ```bash
@@ -85,6 +93,8 @@ After running a `cargo leptos build --release` the minimum files needed are:
 
 1. The server binary located in `target/server/release`
 2. The `site` directory and all files within located in `target/site`
+
+The code supports `gzip`-ing all files within the `site` directory ahead (or even during) of running the binary.
 
 Copy these files to your remote server. The directory structure should be:
 ```text

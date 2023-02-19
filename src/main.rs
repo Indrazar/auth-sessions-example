@@ -8,6 +8,7 @@ struct Ports {
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
 use auth_example::fileserv::file_and_error_handler;
 use auth_example::pages::{register_server_functions, App, AppProps};
+use auth_example::database::db;
 
 use axum::{
     extract::Extension,
@@ -22,6 +23,7 @@ use axum_server::tls_rustls::RustlsConfig;
 use leptos::*;
 use leptos_axum::*;
 use tower_http::compression::CompressionLayer;
+use sqlx::migrate;
 
 use std::{fs, net::SocketAddr, path::PathBuf, sync::Arc};
 }}
@@ -67,11 +69,18 @@ async fn main() {
     // Generate the list of routes in your Leptos App
     let routes = generate_route_list(|cx| leptos::view! { cx, <App/> }).await;
 
+    //setup db
+    let conn = db().await.expect("couldn't connect to DB");
+    /* sqlx::migrate!()
+    .run(&mut conn)
+    .await
+    .expect("could not run SQLx migrations"); */
+
     log::debug!("Server process starting");
     log::debug!("Server {:#?}", leptos_options);
 
-    let file =
-        fs::read_to_string("./server_config.json").expect("Could not load server_config.json: ");
+    let file = fs::read_to_string("./server_config.json")
+        .expect("Could not load server_config.json: ");
     let srv_config: serde_json::Value =
         serde_json::from_str(file.as_str()).expect("Could not decode server_config.json: ");
     log::debug!("Server configurations {:#?}", srv_config);

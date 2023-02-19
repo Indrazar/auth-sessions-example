@@ -5,15 +5,17 @@ use leptos_router::*;
 /// On the server side this will print out all the headers provided by the client
 #[component]
 pub fn LogHeader(cx: Scope) -> impl IntoView {
+    #[cfg(debug_assertions)]
     let log_header = create_server_action::<LogClientHeader>(cx);
 
+    #[cfg(debug_assertions)]
     view! {
         cx,
-        <div>
+        <p>
             <ActionForm action=log_header>
                 <input class="log_header" type="submit" value="Log Current Headers"/>
             </ActionForm>
-        </div>
+        </p>
     }
 }
 
@@ -24,8 +26,9 @@ async fn log_client_headers(cx: Scope) -> Result<String, ServerFnError> {
     let http_req = use_context::<leptos_axum::RequestParts>(cx);
     if let Some(http_req) = http_req {
         log::debug!(
-            "Client pressed LogHeader, printing all data from client:\n\
-            http_req.version: {:#?}\nhttp_req.method: {:#?}\nhttp_req.uri.path(): {:#?}\nhttp_req.headers: {:#?}\nhttp_req.body: {:#?}",
+            "Client pressed LogHeader, printing all data from client:\nhttp_req.version: \
+             {:#?}\nhttp_req.method: {:#?}\nhttp_req.uri.path(): {:#?}\nhttp_req.headers: \
+             {:#?}\nhttp_req.body: {:#?}",
             &http_req.version,
             &http_req.body,
             &http_req.uri.path(),

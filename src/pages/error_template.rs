@@ -1,11 +1,10 @@
 use cfg_if::cfg_if;
 use http::status::StatusCode;
 use leptos::{Errors, *};
-use leptos_meta::*;
-use thiserror::Error;
-
 #[cfg(feature = "ssr")]
 use leptos_axum::ResponseOptions;
+use leptos_meta::*;
+use thiserror::Error;
 
 #[derive(Clone, Debug, Error)]
 pub enum AppError {
