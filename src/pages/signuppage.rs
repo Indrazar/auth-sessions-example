@@ -9,7 +9,7 @@ use crate::security::validate_registration;
 use leptos::*;
 use leptos_router::*;
 #[cfg(feature = "ssr")]
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::SecretString;
 
 #[cfg(feature = "ssr")]
 pub fn register_server_functions() -> Result<(), ServerFnError> {

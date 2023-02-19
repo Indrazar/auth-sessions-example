@@ -6,26 +6,25 @@ struct Ports {
 }
 
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
-use auth_example::fileserv::file_and_error_handler;
-use auth_example::pages::{register_server_functions, App, AppProps};
-use auth_example::database::db;
+    use auth_example::fileserv::file_and_error_handler;
+    use auth_example::pages::{register_server_functions, App, AppProps};
+    use auth_example::database::db;
 
-use axum::{
-    extract::Extension,
-    extract::Host,
-    handler::HandlerWithoutStateExt,
-    http::{StatusCode, Uri},
-    response::Redirect,
-    routing::post,
-    BoxError, Router,
-};
-use axum_server::tls_rustls::RustlsConfig;
-use leptos::*;
-use leptos_axum::*;
-use tower_http::compression::CompressionLayer;
-use sqlx::migrate;
+    use axum::{
+        extract::Extension,
+        extract::Host,
+        handler::HandlerWithoutStateExt,
+        http::{StatusCode, Uri},
+        response::Redirect,
+        routing::post,
+        BoxError, Router,
+    };
+    use axum_server::tls_rustls::RustlsConfig;
+    use leptos::*;
+    use leptos_axum::*;
+    use tower_http::compression::CompressionLayer;
 
-use std::{fs, net::SocketAddr, path::PathBuf, sync::Arc};
+    use std::{fs, net::SocketAddr, path::PathBuf, sync::Arc};
 }}
 
 #[cfg(feature = "ssr")]
@@ -69,12 +68,8 @@ async fn main() {
     // Generate the list of routes in your Leptos App
     let routes = generate_route_list(|cx| leptos::view! { cx, <App/> }).await;
 
-    //setup db
+    //verify db is live immedately
     let conn = db().await.expect("couldn't connect to DB");
-    /* sqlx::migrate!()
-    .run(&mut conn)
-    .await
-    .expect("could not run SQLx migrations"); */
 
     log::debug!("Server process starting");
     log::debug!("Server {:#?}", leptos_options);

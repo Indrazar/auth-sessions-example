@@ -9,13 +9,6 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     //use leptos_axum::ResponseOptions;
 }}
 
-cfg_if! { if #[cfg(not(feature = "ssr"))] {
-    use crate::cookies::consume_ssr_cookie;
-    use leptos_router::NavigateOptions;
-    //use leptos_router::State;
-    use std::time::Duration;
-}}
-
 /// This component forces SSR to resolve and will leave behind a javascript-
 /// enabled session cookie in the header which the WASM will read on load
 /// if the cookie is present then the WASM will not double-send

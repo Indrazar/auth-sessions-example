@@ -1,6 +1,5 @@
-use leptos::ServerFnError;
 #[cfg(feature = "ssr")]
-use secrecy::{ExposeSecret, SecretString};
+use leptos::ServerFnError;
 #[cfg(feature = "ssr")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "ssr")]
@@ -10,10 +9,7 @@ use uuid::Uuid;
 
 #[cfg(feature = "ssr")]
 pub async fn db() -> Result<SqliteConnection, ServerFnError> {
-    //"?mode=rwc" forces creation of the db file if it doesn't exist
-    // TODO REMOVE "?mode=rwc"
-
-    SqliteConnection::connect("sqlite:auth-example.db?mode=rwc")
+    SqliteConnection::connect("sqlite:auth-example.db")
         .await
         .map_err(|e| ServerFnError::ServerError(e.to_string()))
 }
@@ -53,18 +49,14 @@ pub async fn register_user(
                 return Err(ServerFnError::ServerError(String::from(
                     "Signup Request failed.",
                 )));
-            } else {
-                Ok(())
             }
         }
-        Err(e) => match e {
-            _ => {
-                return Err(ServerFnError::ServerError(String::from(
-                    "Signup Request failed.",
-                )));
-            }
-        },
-    }?;
+        Err(_) => {
+            return Err(ServerFnError::ServerError(String::from(
+                "Signup Request failed.",
+            )));
+        }
+    };
     Ok(id)
 }
 
@@ -126,9 +118,9 @@ async fn username_check(username: String) -> Result<(), ServerFnError> {
         };
     if user_exists {
         //TODO prevent user enumeration
-        return Err(ServerFnError::ServerError(String::from(
+        Err(ServerFnError::ServerError(String::from(
             "Username already in use. Signup Request failed.",
-        )));
+        )))
     } else {
         Ok(())
     }
@@ -165,9 +157,9 @@ async fn displayname_check(displayname: String) -> Result<(), ServerFnError> {
         },
     };
     if display_exists {
-        return Err(ServerFnError::ServerError(String::from(
+        Err(ServerFnError::ServerError(String::from(
             "Displayname already in use. Signup Request failed.",
-        )));
+        )))
     } else {
         Ok(())
     }
