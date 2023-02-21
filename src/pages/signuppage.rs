@@ -25,6 +25,8 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
     let sign_up = create_server_action::<SignUp>(cx);
     let mut ssr_state: bool = false;
     let submit_disabled = false;
+    //TODO create mutli action after sign_up server action completes
+    //TODO create field validation on WASM side
 
     view! { cx,
         <LoggedInRedirect
@@ -32,7 +34,7 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
             fail_route=None
             ssr_state=&mut ssr_state
         />
-        <h1>"Auth-No-Middleware"</h1>
+        <h1>"Auth-Sessions-Example"</h1>
         <LogHeader/>
         <h2>"Sign Up"</h2>
         <h3>"Redirect after Submit Not Implemented Yet"</h3>

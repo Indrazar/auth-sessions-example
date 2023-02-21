@@ -8,6 +8,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     };
     use chrono::prelude::*;
     use leptos_axum::RequestParts;
+    use uuid::Uuid;
 } else {
     use wasm_bindgen::JsCast;
 }}
@@ -31,6 +32,37 @@ pub fn force_create_session(cx: Scope) {
         .expect("to create header value"),
     );
     log::trace!("new session force generated: {session_id}");
+}
+
+#[cfg(feature = "ssr")]
+pub async fn issue_session_cookie(
+    cx: Scope,
+    user_id: Uuid,
+    session_id: String,
+) -> Result<(), ServerFnError> {
+    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
+        Some(ro) => ro,
+        None => {
+            return Err(ServerFnError::ServerError(String::from(
+                "Login Request failed.",
+            )))
+        }
+    };
+    let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
+    let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
+
+    response.append_header(
+        SET_COOKIE,
+        HeaderValue::from_str(&format!(
+            "SESSIONID={session_id}; Expires={date_string}; Secure; SameSite=Lax; HttpOnly; \
+             Path=/"
+        ))
+        .expect("to create header value"),
+    );
+
+    //TODO LEFT OFF HERE
+    log::trace!("not implemented");
+    Ok(())
 }
 
 #[cfg(feature = "ssr")]

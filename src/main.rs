@@ -6,9 +6,9 @@ struct Ports {
 }
 
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
-    use auth_no_middleware::fileserv::file_and_error_handler;
-    use auth_no_middleware::pages::{register_server_functions, App, AppProps};
-    use auth_no_middleware::database::db;
+    use auth_sessions_example::fileserv::file_and_error_handler;
+    use auth_sessions_example::pages::{register_server_functions, App, AppProps};
+    use auth_sessions_example::database::db;
 
     use axum::{
         extract::Extension,
@@ -44,7 +44,7 @@ async fn main() {
     // setup logging
     simple_logger::SimpleLogger::new()
         .with_level(log::LevelFilter::Warn)
-        .with_module_level("auth_no_middleware", log::LevelFilter::Trace)
+        .with_module_level("auth_sessions_example", log::LevelFilter::Trace)
         .init()
         .expect("couldn't initialize logging");
     //the logging levels are:

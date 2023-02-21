@@ -23,7 +23,7 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
     );
     let page_data = move || {
         page_data_resource
-            .read()
+            .read(cx)
             .map(|val| val.unwrap_or(String::default()))
             .unwrap_or(String::default())
     };
@@ -35,7 +35,7 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
             fail_route=Some("/landing".to_string())
             ssr_state=&mut ssr_state
         />
-        <h1>"Auth-No-Middleware"</h1>
+        <h1>"Auth-Sessions-Example"</h1>
         <h2>"Logged In Homepage"</h2>
         <p>"Hello! "{page_data}</p>
         <LogHeader/>

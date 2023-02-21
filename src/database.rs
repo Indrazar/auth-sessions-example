@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 #[cfg(feature = "ssr")]
 pub async fn db() -> Result<SqliteConnection, ServerFnError> {
-    SqliteConnection::connect("sqlite:auth-no-middleware.db")
+    SqliteConnection::connect("sqlite:auth-sessions-example.db")
         .await
         .map_err(|e| ServerFnError::ServerError(e.to_string()))
 }

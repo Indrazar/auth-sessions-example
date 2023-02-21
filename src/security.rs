@@ -144,7 +144,9 @@ pub async fn validate_registration(
     unique_cred_check(UniqueCredential::DisplayName(displayname.clone())).await?;
     //unique_cred_check(UniqueCredential::Email(email)).await?;
     let password_hash = gen_hash(password)?;
-    log::trace!("signup: successful registration for user: {username}, name: {displayname}");
+    log::trace!(
+        "signup: successful registration for username: {username}, displayname: {displayname}"
+    );
     register_user(username, displayname, email, password_hash).await?;
     log::trace!("signup: db write succeeded for new user");
     Ok(())
@@ -156,7 +158,7 @@ pub async fn validate_login(
     csrf: String,
     username: String,
     password: SecretString,
-) -> Result<(), ServerFnError> {
+) -> Result<Uuid, ServerFnError> {
     let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
         None => {
             log::error!("login: could not retrieve RequestParts");
@@ -177,9 +179,25 @@ pub async fn validate_login(
             ServerFnError::ServerError(String::from("Login Request was invalid."))
         }
     })?;
-    validate_credentials(username.clone(), password).await?;
+    let id = validate_credentials(username.clone(), password).await?;
     log::trace!("login: successful login for user: {username}");
-    Ok(())
+    Ok(id)
+}
+
+#[cfg(feature = "ssr")]
+pub fn gen_csprng_session() -> String {
+    // this will issue a CSPRNG created session ID which is stored in the DB
+    // by another function. This function only generates the CSPRNG value.
+    // alternate implementations would deliver AES-ed data to the user to prevent
+    // addtional DB load on each API request including the session cookie
+    //
+    // for now we will only use the full random ID and hit the database with each request
+    // this is an easy place to improve performance later if it is needed with high DB load
+    const CUSTOM_ENGINE: base64::engine::GeneralPurpose = base64::engine::GeneralPurpose::new(
+        &base64::alphabet::URL_SAFE,
+        base64::engine::general_purpose::NO_PAD,
+    );
+    base64::Engine::encode(&CUSTOM_ENGINE, Uuid::new_v4().as_bytes())
 }
 
 #[cfg(feature = "ssr")]
@@ -210,9 +228,6 @@ pub async fn validate_credentials(
             )));
         }
     };
-    //let row = sqlx::query_as::<_, ValidateCredential>(
-    //    "SELECT user_id, password_hash FROM users WHERE username = $1",
-    //)
     let row = sqlx::query_as!(
         ValidateCredential,
         r#"SELECT user_id AS "user_id: Uuid", password_hash FROM users WHERE username = ?"#,

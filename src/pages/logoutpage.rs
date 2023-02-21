@@ -40,7 +40,7 @@ pub fn LogoutPage(cx: Scope) -> impl IntoView {
     }
 
     view! {cx,
-        <h1>"Auth-No-Middleware"</h1>
+        <h1>"Auth-Sessions-Example"</h1>
         <h2>"Logout Page"</h2>
         <LogHeader/>
         <p><a href="/">"Return to Landing Page"</a></p>

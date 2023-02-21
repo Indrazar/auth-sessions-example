@@ -8,9 +8,10 @@ use leptos::*;
 use leptos_router::*;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
-    use crate::cookies::force_create_session;
-    use crate::security::validate_login;
+    use crate::cookies::{force_create_session, issue_session_cookie};
+    use crate::security::{validate_login, gen_csprng_session};
     use secrecy::SecretString;
+    use leptos_axum::redirect;
 
     pub fn register_server_functions() -> Result<(), ServerFnError> {
         ForceLogin::register()?;
@@ -25,6 +26,8 @@ pub fn LoginPage(cx: Scope) -> impl IntoView {
     let mut ssr_state: bool = false;
     let login = create_server_action::<Login>(cx);
     let submit_disabled = false;
+    //TODO create mutli action after login server action completes
+    //TODO create field validation on WASM side
 
     view! { cx,
         <LoggedInRedirect
@@ -32,7 +35,7 @@ pub fn LoginPage(cx: Scope) -> impl IntoView {
             fail_route=None
             ssr_state=&mut ssr_state
         />
-        <h1>"Auth-No-Middleware"</h1>
+        <h1>"Auth-Sessions-Example"</h1>
         <h2>"Login Page"</h2>
         <LogHeader/>
         <GenerateSession/>
@@ -84,5 +87,9 @@ pub async fn login(
     username: String,
     password: String,
 ) -> Result<(), ServerFnError> {
-    validate_login(cx, csrf, username, SecretString::from(password)).await
+    let user_id = validate_login(cx, csrf, username, SecretString::from(password)).await?;
+    let session_id = gen_csprng_session();
+    issue_session_cookie(cx, user_id, session_id).await?;
+    redirect(cx, "/home");
+    Ok(())
 }

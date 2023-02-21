@@ -5,7 +5,7 @@ No. It's mostly a learning experience and I have no idea what I am doing. This s
 Opening this to the greater internet is likey a VERY BAD idea unless you at a minimum implement recaptcha (just an example, not a recommendation) and/or other bot mitigations.
 The bots will arrive and they will sell you uggs.
 
-# Leptos Auth-No-Middleware
+# Leptos Auth-Sessions-Example
 
 This project is made with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum) but without using [axum-sessions](https://github.com/maxcountryman/axum-sessions). You should probally use axum-sessions and not this.
 
@@ -96,18 +96,24 @@ After running a `cargo leptos build --release` the minimum files needed are:
 
 The code supports `gzip`-ing all files within the `site` directory ahead (or even during) of running the binary.
 
-Copy these files to your remote server. The directory structure should be:
+3. Copy these files to your remote server. The directory structure should be:
 ```text
-auth-no-middleware
+auth-sessions-example
 site/
 ```
-Set the following environment variables (updating as needed):
+4. Set the following environment variables (updating as needed):
 ```text
-LEPTOS_OUTPUT_NAME="auth-no-middleware"
+LEPTOS_OUTPUT_NAME="auth-sessions-example"
 LEPTOS_SITE_ROOT="site"
 LEPTOS_SITE_PKG_DIR="pkg"
 LEPTOS_SITE_ADDR="0.0.0.0:443"
 ```
 LEPTOS_SITE_ADDR highly depends on where and how you are deploying it.
 
-Finally, run the server binary.
+5. Copy `.env.example` into `.env` and make sure the settings are correct.
+6. Generate a new database and apply the included migration.
+```
+sqlx database create
+sqlx migrate run
+```
+7. Finally, run the server binary.

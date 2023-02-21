@@ -26,19 +26,73 @@ pub fn register_server_functions() -> Result<(), ServerFnError> {
     Ok(())
 }
 
+#[cfg(feature = "ssr")]
+fn set_headers(cx: Scope) {
+    use axum::http::{header::CONTENT_TYPE, HeaderValue};
+    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
+        Some(ro) => ro,
+        None => return,
+    };
+    //TODO remove after leptos sets this by default
+    response.insert_header(
+        CONTENT_TYPE,
+        HeaderValue::from_static(mime::TEXT_HTML_UTF_8.as_ref()),
+    );
+    response.insert_header(
+        axum::http::header::X_XSS_PROTECTION,
+        HeaderValue::from_static("1; mode=block"),
+    );
+    response.insert_header(
+        axum::http::header::X_FRAME_OPTIONS,
+        HeaderValue::from_static("DENY"),
+    );
+    response.insert_header(
+        axum::http::header::CACHE_CONTROL,
+        HeaderValue::from_static("no-cache, private"),
+    );
+    #[cfg(debug_assertions)]
+    response.insert_header(
+        axum::http::header::CONTENT_SECURITY_POLICY,
+        HeaderValue::from_static(
+            // loading WASM apparently requires 'unsafe-inline' 'unsafe-eval'?
+            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; \
+             connect-src 'self' ws://127.0.0.1:3001/",
+        ), //media-src example.org example.net; script-src userscripts.example.com; img-src *;
+    );
+    #[cfg(not(debug_assertions))]
+    response.insert_header(
+        axum::http::header::CONTENT_SECURITY_POLICY,
+        HeaderValue::from_static(
+            // loading WASM apparently requires 'unsafe-inline' 'unsafe-eval'?
+            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'",
+        ), //media-src example.org example.net; script-src userscripts.example.com; img-src *;
+    );
+    response.insert_header(
+        axum::http::header::STRICT_TRANSPORT_SECURITY,
+        HeaderValue::from_static("max-age=31536000"),
+    )
+}
+
 #[component]
 pub fn App(cx: Scope) -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context(cx);
+    let nonce = "";
+
+    cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
+        // Set correct header for `Content-Type: text/html; charset=UTF-8`, etc.
+        set_headers(cx);
+    }}
 
     view! {
         cx,
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
-        <Stylesheet id="leptos" href="/pkg/auth_no_middleware.css"/>
+        <Stylesheet id="leptos" href="/pkg/auth_sessions_example.css"/>
+        <Script nonce={nonce}/>
 
         // sets the document title
-        <Title text="Auth-No-Middleware: A Letpos HTTPS Auth Example"/>
+        <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
 
         // content for this app
         <Router>
