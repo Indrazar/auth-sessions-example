@@ -7,6 +7,8 @@ use crate::pages::components::{
 use crate::security::validate_registration;
 //use crate::security::register_user;
 use leptos::*;
+#[cfg(feature = "ssr")]
+use leptos_axum::redirect;
 use leptos_router::*;
 #[cfg(feature = "ssr")]
 use secrecy::SecretString;
@@ -23,7 +25,6 @@ pub fn register_server_functions() -> Result<(), ServerFnError> {
 #[component]
 pub fn SignupPage(cx: Scope) -> impl IntoView {
     let sign_up = create_server_action::<SignUp>(cx);
-    let mut ssr_state: bool = false;
     let submit_disabled = false;
     //TODO create mutli action after sign_up server action completes
     //TODO create field validation on WASM side
@@ -32,12 +33,10 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
         <LoggedInRedirect
             success_route=Some("/home".to_string())
             fail_route=None
-            ssr_state=&mut ssr_state
         />
         <h1>"Auth-Sessions-Example"</h1>
         <LogHeader/>
         <h2>"Sign Up"</h2>
-        <h3>"Redirect after Submit Not Implemented Yet"</h3>
         <p>
             <ActionForm action=sign_up>
                 <CSRFField/>
@@ -93,5 +92,7 @@ pub async fn sign_up(
         SecretString::from(password),
         SecretString::from(password_confirmation),
     )
-    .await
+    .await?;
+    redirect(cx, "/login");
+    Ok(())
 }

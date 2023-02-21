@@ -11,6 +11,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
         header::{COOKIE, SET_COOKIE},
         HeaderValue,
     };
+    use chrono::prelude::*;
     use email_address::EmailAddress;
     use leptos::*;
     use leptos_axum::RequestParts;
@@ -27,7 +28,7 @@ pub fn generate_csrf(cx: Scope) -> String {
         None => return String::default(),
     };
     //TODO use a CSPRNG here
-    let csrf_string = String::from("valid");
+    let csrf_string = gen_128bit_base64();
     response.append_header(
         SET_COOKIE,
         HeaderValue::from_str(
@@ -185,11 +186,13 @@ pub async fn validate_login(
 }
 
 #[cfg(feature = "ssr")]
-pub fn gen_csprng_session() -> String {
-    // this will issue a CSPRNG created session ID which is stored in the DB
-    // by another function. This function only generates the CSPRNG value.
-    // alternate implementations would deliver AES-ed data to the user to prevent
-    // addtional DB load on each API request including the session cookie
+pub fn gen_128bit_base64() -> String {
+    // this will issue a CSPRNG created 128 bits of entropy in base 64
+    // This function only generates the CSPRNG value.
+    //
+    // For session cookies alternate implementations would deliver AES encrypted
+    // data to the user to prevent addtional DB load on each API request including
+    // the session cookie.
     //
     // for now we will only use the full random ID and hit the database with each request
     // this is an easy place to improve performance later if it is needed with high DB load
@@ -217,7 +220,7 @@ enum ValidateHashError {
 pub async fn validate_credentials(
     username: String,
     untrusted_password: SecretString,
-) -> Result<uuid::Uuid, leptos_server::ServerFnError> {
+) -> Result<uuid::Uuid, ServerFnError> {
     //TODO consider moving some of this to database.rs
     let mut conn = match db().await {
         Ok(res) => res,

@@ -7,12 +7,10 @@ use leptos::*;
 /// Renders the non-logged in landing page. Redirects if logged in.
 #[component]
 pub fn LandingPage(cx: Scope) -> impl IntoView {
-    let mut ssr_state: bool = false;
     view! { cx,
         <LoggedInRedirect
             success_route=Some(String::from("/home"))
             fail_route=Some(String::from("/landing"))
-            ssr_state=&mut ssr_state
         />
         <CoreLandingPage/>
     }

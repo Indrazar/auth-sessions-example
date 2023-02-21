@@ -2,6 +2,7 @@ use cfg_if::cfg_if;
 use leptos::*;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
+    use crate::database::{associate_session, validate_token};
     use axum::{
         http::header::{COOKIE, SET_COOKIE},
         http::HeaderValue,
@@ -12,27 +13,6 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 } else {
     use wasm_bindgen::JsCast;
 }}
-
-/// delete this TODO REMOVE
-#[cfg(feature = "ssr")]
-pub fn force_create_session(cx: Scope) {
-    let session_id = "10".to_string();
-    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
-        Some(ro) => ro,
-        None => return,
-    };
-    let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
-    let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
-    response.append_header(
-        SET_COOKIE,
-        HeaderValue::from_str(&format!(
-            "SESSIONID={session_id}; Expires={date_string}; Secure; SameSite=Lax; HttpOnly; \
-             Path=/"
-        ))
-        .expect("to create header value"),
-    );
-    log::trace!("new session force generated: {session_id}");
-}
 
 #[cfg(feature = "ssr")]
 pub async fn issue_session_cookie(
@@ -50,7 +30,7 @@ pub async fn issue_session_cookie(
     };
     let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
     let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
-
+    associate_session(user_id, &session_id, expire_time).await?;
     response.append_header(
         SET_COOKIE,
         HeaderValue::from_str(&format!(
@@ -59,22 +39,19 @@ pub async fn issue_session_cookie(
         ))
         .expect("to create header value"),
     );
-
-    //TODO LEFT OFF HERE
-    log::trace!("not implemented");
     Ok(())
 }
 
 #[cfg(feature = "ssr")]
-pub fn validate_session(cx: Scope) -> bool {
+pub async fn validate_session(cx: Scope) -> Result<Option<Uuid>, ServerFnError> {
     // extract request, bailing if there is none
     let http_req = match use_context::<RequestParts>(cx) {
-        Some(rp) => rp,       // actual user request
-        None => return false, // no request, building routes in main.rs
+        Some(rp) => rp,          // actual user request
+        None => return Ok(None), // no request, building routes in main.rs
     };
     // grab request's session, bailing if there is none
     let unverified_session_id = parse_session_cookie(http_req);
-    validate_token(unverified_session_id.as_str())
+    Ok(validate_token(unverified_session_id).await?)
     // do not renew cookies every time, force logins every 30 days
     //// build header to apply renewed cookie
     //let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
@@ -115,15 +92,6 @@ pub fn get_cookie_value(cookies: &str, key: &str) -> Option<String> {
             None
         }
     })
-}
-
-#[cfg(feature = "ssr")]
-fn validate_token(suspect_session: &str) -> bool {
-    //TODO: use database call
-    match suspect_session {
-        "10" => true,
-        _ => false,
-    }
 }
 
 #[cfg(feature = "ssr")]

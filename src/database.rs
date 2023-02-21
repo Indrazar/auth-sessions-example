@@ -1,17 +1,60 @@
-#[cfg(feature = "ssr")]
-use leptos::ServerFnError;
-#[cfg(feature = "ssr")]
-use serde::{Deserialize, Serialize};
-#[cfg(feature = "ssr")]
-use sqlx::{Connection, SqliteConnection};
-#[cfg(feature = "ssr")]
-use uuid::Uuid;
+use cfg_if::cfg_if;
+
+cfg_if! { if #[cfg(feature = "ssr")] {
+    use chrono::prelude::*;
+    use leptos::ServerFnError;
+    use serde::{Deserialize, Serialize};
+    use sqlx::{Connection, SqliteConnection};
+    use uuid::Uuid;
+}}
 
 #[cfg(feature = "ssr")]
 pub async fn db() -> Result<SqliteConnection, ServerFnError> {
     SqliteConnection::connect("sqlite:auth-sessions-example.db")
         .await
         .map_err(|e| ServerFnError::ServerError(e.to_string()))
+}
+
+#[cfg(feature = "ssr")]
+#[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow)]
+struct RetrieveDisplayname {
+    displayname: String,
+}
+
+#[cfg(feature = "ssr")]
+pub async fn user_display_name(id: Uuid) -> Result<String, ServerFnError> {
+    let mut conn = match db().await {
+        Ok(res) => res,
+        Err(e) => {
+            log::error!("failed to connect to database in validate_token: {e}");
+            return Err(ServerFnError::ServerError(String::from("Invalid Session")));
+        }
+    };
+
+    let row = sqlx::query_as!(
+        RetrieveDisplayname,
+        r#"SELECT displayname FROM users WHERE user_id = ?"#,
+        id
+    )
+    .fetch_one(&mut conn)
+    .await;
+    let displayname: String = match row {
+        Ok(res) => res.displayname,
+        Err(e) => match e {
+            sqlx::Error::RowNotFound => {
+                return Err(ServerFnError::ServerError(String::from(
+                    "User ID not found",
+                )));
+            }
+            _ => {
+                log::trace!("database lookup for display name failed: {e}");
+                return Err(ServerFnError::ServerError(String::from(
+                    "Information retrieval failed",
+                )));
+            }
+        },
+    };
+    Ok(displayname)
 }
 
 #[cfg(feature = "ssr")]
@@ -58,6 +101,111 @@ pub async fn register_user(
         }
     };
     Ok(id)
+}
+
+#[cfg(feature = "ssr")]
+pub async fn associate_session(
+    user_id: Uuid,
+    session_id: &String,
+    expire_time: DateTime<Utc>,
+) -> Result<(), ServerFnError> {
+    let mut conn = match db().await {
+        Ok(res) => res,
+        Err(e) => {
+            log::error!("failed to connect to database in username_check: {e}");
+            return Err(ServerFnError::ServerError(String::from(
+                "Login Request failed.",
+            )));
+        }
+    };
+    let query_res = sqlx::query!(
+        "INSERT INTO active_sesssions (session_id, user_id, expiry) VALUES (?, ?, ?)",
+        session_id,
+        user_id,
+        expire_time
+    )
+    .execute(&mut conn)
+    .await;
+    match query_res {
+        Ok(val) => {
+            if val.rows_affected() != 1 {
+                return Err(ServerFnError::ServerError(String::from(
+                    "Signup Request failed.",
+                )));
+            }
+        }
+        Err(_) => {
+            return Err(ServerFnError::ServerError(String::from(
+                "Signup Request failed.",
+            )));
+        }
+    };
+    Ok(())
+}
+
+#[cfg(feature = "ssr")]
+#[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow)]
+struct ValidateSession {
+    user_id: Uuid,
+    expiry: DateTime<Utc>,
+}
+
+#[cfg(feature = "ssr")]
+pub async fn validate_token(
+    untrusted_session: String,
+) -> Result<Option<uuid::Uuid>, ServerFnError> {
+    //TODO consider moving some of this to database.rs
+    let mut conn = match db().await {
+        Ok(res) => res,
+        Err(e) => {
+            log::error!("failed to connect to database in validate_token: {e}");
+            return Err(ServerFnError::ServerError(String::from("Invalid Session")));
+        }
+    };
+    let row = sqlx::query_as!(
+        ValidateSession,
+        r#"SELECT user_id AS "user_id: Uuid", expiry AS "expiry: DateTime<Utc>" FROM active_sesssions WHERE session_id = ?"#,
+        untrusted_session
+    )
+    .fetch_one(&mut conn)
+    .await;
+    let (true_uuid, expiry): (Uuid, DateTime<Utc>) = match row {
+        Ok(cred) => (cred.user_id, cred.expiry),
+        Err(e) => match e {
+            sqlx::Error::RowNotFound => {
+                return Ok(None);
+            }
+            _ => {
+                log::trace!("invalid session provided with error: {e}");
+                return Err(ServerFnError::ServerError(String::from(
+                    "Session retrieval failed",
+                )));
+            }
+        },
+    };
+    //validate NOT expired
+    if expiry < Utc::now() {
+        let remove_res = sqlx::query!(
+            "DELETE FROM active_sesssions WHERE session_id = ?",
+            untrusted_session
+        )
+        .execute(&mut conn)
+        .await;
+        match remove_res {
+            Ok(val) => {
+                if val.rows_affected() != 1 {
+                    log::trace!("removal of expired session from database failed");
+                    return Ok(None);
+                }
+                return Ok(None);
+            }
+            Err(_) => {
+                log::trace!("removal of expired session from database failed");
+                return Ok(None);
+            }
+        };
+    }
+    Ok(Some(true_uuid))
 }
 
 #[cfg(feature = "ssr")]
