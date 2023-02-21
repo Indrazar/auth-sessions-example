@@ -1,5 +1,5 @@
 # Does This Work?
-No. It's mostly a learning experience and I have no idea what I am doing. This section will disappear once it is a more serious template.
+Kind of. It's mostly a learning experience and I have no idea what I am doing. This section will disappear once it is a more serious template.
 
 # Notes about Spam
 Opening this to the greater internet is likey a VERY BAD idea unless you at a minimum implement recaptcha (just an example, not a recommendation) and/or other bot mitigations.

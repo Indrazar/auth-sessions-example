@@ -11,7 +11,6 @@ cfg_if! { if #[cfg(feature = "ssr")] {
         header::{COOKIE, SET_COOKIE},
         HeaderValue,
     };
-    use chrono::prelude::*;
     use email_address::EmailAddress;
     use leptos::*;
     use leptos_axum::RequestParts;

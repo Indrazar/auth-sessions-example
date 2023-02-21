@@ -51,7 +51,7 @@ pub async fn validate_session(cx: Scope) -> Result<Option<Uuid>, ServerFnError> 
     };
     // grab request's session, bailing if there is none
     let unverified_session_id = parse_session_cookie(http_req);
-    Ok(validate_token(unverified_session_id).await?)
+    validate_token(unverified_session_id).await
     // do not renew cookies every time, force logins every 30 days
     //// build header to apply renewed cookie
     //let response = match use_context::<leptos_axum::ResponseOptions>(cx) {

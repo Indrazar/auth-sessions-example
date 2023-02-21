@@ -8,7 +8,6 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 }}
 
 cfg_if! { if #[cfg(not(feature = "ssr"))] {
-    use crate::cookies::consume_ssr_cookie;
     use leptos_router::NavigateOptions;
 }}
 

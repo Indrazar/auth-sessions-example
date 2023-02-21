@@ -49,7 +49,7 @@ pub async fn get_home_page(cx: Scope) -> Result<String, ServerFnError> {
     match session_valid {
         Some(id) => {
             let display_name = user_display_name(id).await?;
-            Ok(String::from(format!("You are logged in {display_name}!")))
+            Ok(format!("You are logged in {display_name}!"))
         }
         None => Ok(String::from("You are not logged in")),
     }
