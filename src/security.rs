@@ -257,6 +257,10 @@ pub async fn validate_credentials(
 fn gen_hash(input: SecretString) -> Result<String, ServerFnError> {
     // forever TODO: improve salt and complextity of hashing as computers get better
     // and as people buy more PS5s and shove them in underwater hashing factories
+    // reference this article:
+    // <https://argon2-cffi.readthedocs.io/en/stable/parameters.html>
+    // archive:
+    // <https://web.archive.org/web/20230111040733/https://argon2-cffi.readthedocs.io/en/stable/parameters.html>
     let salt = SaltString::generate(&mut rand::thread_rng());
     match Argon2::default().hash_password(input.expose_secret().as_bytes(), &salt) {
         Ok(hash) => Ok(hash.to_string()),
