@@ -4,7 +4,7 @@ use leptos::*;
 cfg_if! { if #[cfg(feature = "ssr")] {
     //use crate::cookies::set_ssr_cookie;
     use crate::cookies::validate_session;
-    //use leptos_axum::redirect;
+    use leptos_axum::redirect;
 }}
 
 cfg_if! { if #[cfg(not(feature = "ssr"))] {
@@ -22,56 +22,101 @@ pub fn LoggedInRedirect(
     success_route: Option<String>,
     fail_route: Option<String>,
 ) -> impl IntoView {
-    #[cfg(not(feature = "ssr"))]
-    {
-        let redirect_action = create_server_action::<ProcessRedirect>(cx);
-        redirect_action.dispatch(ProcessRedirect {});
-        create_effect(cx, move |_| {
-            match redirect_action.value().get() {
+    let redirect_action = create_server_action::<ProcessRedirect>(cx);
+    let redirect_resource = create_resource(
+        cx,
+        move || (redirect_action.version().get()),
+        move |_| {
+            log::trace!("redirect retriever running fetcher");
+            process_redirect(cx)
+        },
+    );
+    let redirect_result = move || {
+        redirect_resource.read(cx).map(|n| {
+            match n {
                 //redirect to success_route if present
-                Some(Ok(true)) => match &success_route {
+                Ok(true) => match &success_route {
                     Some(route) => {
-                        leptos::log!("session was valid, redirecting to {route}");
+                        log::trace!("session was valid, redirecting to {route}");
+
+                        #[cfg(feature = "ssr")]
+                        redirect(cx, route.as_str());
+
+                        #[cfg(not(feature = "ssr"))]
                         match leptos_router::use_navigate(cx)(
                             route.as_str(),
                             NavigateOptions::default(),
                         ) {
-                            Ok(_) => {}
+                            Ok(_) => (),
                             Err(e) => {
-                                leptos::log!("{:#?}", e);
+                                log::error!("{:#?}", e);
                             }
                         }
                     }
                     None => {
                         //if no success_route do nothing
-                        leptos::log!("session was valid, no redirect");
+                        log::trace!("session was valid, no redirect");
                     }
                 },
-                Some(Ok(false)) => match &fail_route {
+                Ok(false) => match &fail_route {
                     Some(route) => {
                         //redirect to fail_route if present
-                        leptos::log!("session was invalid, redirecting to {route}");
+                        log::trace!("session was invalid, redirecting to {route}");
+
+                        #[cfg(feature = "ssr")]
+                        redirect(cx, route.as_str());
+
+                        #[cfg(not(feature = "ssr"))]
                         match leptos_router::use_navigate(cx)(
                             route.as_str(),
                             NavigateOptions::default(),
                         ) {
-                            Ok(_) => {}
+                            Ok(_) => (),
                             Err(e) => {
-                                leptos::log!("{:#?}", e);
+                                log::error!("{:#?}", e);
                             }
                         }
                     }
                     None => {
                         //if no fail_route do nothing
-                        leptos::log!("session was invalid, no redirect");
+                        log::trace!("session was invalid, no redirect");
                     }
                 },
-                _ => {} // still waiting for action to complete
-            }
-        });
-    }
+                Err(e) => match &fail_route {
+                    Some(route) => {
+                        //redirect to fail_route if present
+                        log::trace!(
+                            "server encountered error {e}, redirecting to fail_route: {route}"
+                        );
 
-    view! {cx, <></>} // redirect is non-visible
+                        #[cfg(feature = "ssr")]
+                        redirect(cx, route.as_str());
+
+                        #[cfg(not(feature = "ssr"))]
+                        match leptos_router::use_navigate(cx)(
+                            route.as_str(),
+                            NavigateOptions::default(),
+                        ) {
+                            Ok(_) => (),
+                            Err(e) => {
+                                log::error!("{:#?}", e);
+                            }
+                        }
+                    }
+                    None => {
+                        //if no fail_route do nothing
+                        log::trace!("server encountered error {e}, no redirect");
+                    }
+                },
+            }
+        })
+    };
+
+    view! {cx,
+        <Suspense fallback={|| view!{cx, <></>}}>
+        <>{redirect_result()}</>
+        </Suspense>
+    } // redirect is non-visible
 }
 
 #[server(ProcessRedirect, "/api")]

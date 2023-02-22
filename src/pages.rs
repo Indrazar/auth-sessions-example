@@ -98,10 +98,10 @@ pub fn App(cx: Scope) -> impl IntoView {
         <Router>
             <main>
                 <Routes>
-                    <Route path="" view=|cx| view! { cx, <LandingPage/> }/>
-                    <Route path="/landing" view=|cx| view! { cx, <CoreLandingPage/> }/>
-                    <Route path="/signup" view=|cx| view! { cx, <SignupPage/> }/>
-                    <Route path="/login" view=|cx| view! { cx, <LoginPage/> }/>
+                    <Route path="" view=|cx| view! { cx, <LandingPage/> } ssr=SsrMode::Async/>
+                    <Route path="/landing" view=|cx| view! { cx, <CoreLandingPage/> } ssr=SsrMode::Async/>
+                    <Route path="/signup" view=|cx| view! { cx, <SignupPage/> } ssr=SsrMode::Async/>
+                    <Route path="/login" view=|cx| view! { cx, <LoginPage/> } ssr=SsrMode::Async/>
                     <Route path="/home" view=|cx| view! { cx, <HomePage/> }/>
                     <Route path="/logout" view=|cx| view! { cx, <LogoutPage/> }/>
                 </Routes>

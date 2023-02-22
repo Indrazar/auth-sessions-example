@@ -3,6 +3,7 @@ use cfg_if::cfg_if;
 cfg_if! { if #[cfg(feature = "ssr")] {
     use chrono::prelude::*;
     use leptos::ServerFnError;
+    use secrecy::{ExposeSecret, SecretString};
     use serde::{Deserialize, Serialize};
     use sqlx::{Connection, SqliteConnection};
     use uuid::Uuid;
@@ -154,7 +155,6 @@ struct ValidateSession {
 pub async fn validate_token(
     untrusted_session: String,
 ) -> Result<Option<uuid::Uuid>, ServerFnError> {
-    //TODO consider moving some of this to database.rs
     let mut conn = match db().await {
         Ok(res) => res,
         Err(e) => {
@@ -206,6 +206,47 @@ pub async fn validate_token(
         };
     }
     Ok(Some(true_uuid))
+}
+
+#[cfg(feature = "ssr")]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, sqlx::FromRow)]
+struct ValidateCredential {
+    user_id: Uuid,
+    password_hash: String,
+}
+
+#[cfg(feature = "ssr")]
+pub async fn retrieve_credentials(
+    username: &String,
+) -> Result<Option<(Uuid, SecretString)>, ServerFnError> {
+    let mut conn = match db().await {
+        Ok(res) => res,
+        Err(e) => {
+            log::error!("failed to connect to database in validate_credentials: {e}");
+            return Err(ServerFnError::ServerError(String::from(
+                "Login Request failed.",
+            )));
+        }
+    };
+    let row = sqlx::query_as!(
+        ValidateCredential,
+        r#"SELECT user_id AS "user_id: Uuid", password_hash FROM users WHERE username = ?"#,
+        username
+    )
+    .fetch_one(&mut conn)
+    .await;
+    match row {
+        Ok(cred) => Ok(Some((cred.user_id, SecretString::from(cred.password_hash)))),
+        Err(e) => match e {
+            sqlx::Error::RowNotFound => Ok(None),
+            _ => {
+                log::trace!("failed login on username: {username} with error {e}");
+                return Err(ServerFnError::ServerError(String::from(
+                    "Login Request failed.",
+                )));
+            }
+        },
+    }
 }
 
 #[cfg(feature = "ssr")]

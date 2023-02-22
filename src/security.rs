@@ -2,7 +2,7 @@ use cfg_if::cfg_if;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::get_cookie_value;
-    use crate::database::{db, register_user, unique_cred_check, UniqueCredential};
+    use crate::database::{db, register_user, unique_cred_check, retrieve_credentials, UniqueCredential};
     use argon2::{
         password_hash::{PasswordVerifier, SaltString},
         Argon2, PasswordHash, PasswordHasher,
@@ -203,13 +203,6 @@ pub fn gen_128bit_base64() -> String {
 }
 
 #[cfg(feature = "ssr")]
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, sqlx::FromRow)]
-struct ValidateCredential {
-    user_id: Uuid,
-    password_hash: String,
-}
-
-#[cfg(feature = "ssr")]
 enum ValidateHashError {
     DatabaseError(argon2::password_hash::Error),
     VerifyError(argon2::password_hash::Error),
@@ -220,40 +213,24 @@ pub async fn validate_credentials(
     username: String,
     untrusted_password: SecretString,
 ) -> Result<uuid::Uuid, ServerFnError> {
-    //TODO consider moving some of this to database.rs
-    let mut conn = match db().await {
-        Ok(res) => res,
-        Err(e) => {
-            log::error!("failed to connect to database in validate_credentials: {e}");
-            return Err(ServerFnError::ServerError(String::from(
-                "Login Request failed.",
-            )));
-        }
-    };
-    let row = sqlx::query_as!(
-        ValidateCredential,
-        r#"SELECT user_id AS "user_id: Uuid", password_hash FROM users WHERE username = ?"#,
-        username
-    )
-    .fetch_one(&mut conn)
-    .await;
-
-    let (true_uuid, stored_phc): (Uuid, SecretString) = match row {
-        Ok(cred) => (cred.user_id, SecretString::from(cred.password_hash)),
-        Err(e) => {
-            //execute some time wasting to prevent username enumeration
-            let _task =
-                tokio::task::spawn_blocking(move || spin_hash(untrusted_password)).await;
-            log::trace!("invalid login on username: {username} with error {e}");
-            return Err(ServerFnError::ServerError(String::from(
-                "Login Request was invalid.",
-            )));
-        }
-    };
+    let (true_uuid, stored_phc): (Uuid, SecretString) =
+        match retrieve_credentials(&username).await {
+            Ok(Some(x)) => x,
+            Ok(None) => {
+                //execute some time wasting to prevent username enumeration
+                let _task =
+                    tokio::task::spawn_blocking(move || spin_hash(untrusted_password)).await;
+                log::trace!("invalid login attempt on unregistered {username}");
+                return Err(ServerFnError::ServerError(String::from(
+                    "Login Request was invalid.",
+                )));
+            }
+            Err(e) => return Err(e),
+        };
     let task =
         tokio::task::spawn_blocking(move || verify_hash(stored_phc, untrusted_password)).await;
     match task {
-        Ok(Ok(_)) => Ok(true_uuid),
+        Ok(Ok(())) => Ok(true_uuid),
         Ok(Err(ValidateHashError::DatabaseError(e))) => {
             //database is possibly corrupted
             log::error!("could not parse PHC for {username} with error {e}");
