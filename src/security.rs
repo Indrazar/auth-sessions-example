@@ -3,6 +3,7 @@ use cfg_if::cfg_if;
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::get_cookie_value;
     use crate::database::{db, register_user, unique_cred_check, retrieve_credentials, UniqueCredential};
+    use crate::defs;
     use argon2::{
         password_hash::{PasswordVerifier, SaltString},
         Argon2, PasswordHash, PasswordHasher,
@@ -127,12 +128,39 @@ pub async fn validate_registration(
         }
         true => {}
     };
-    //validate password meets minimum length requirement
-    if password.expose_secret().len() < 14 {
+    //validate password is within length requirements
+    if password.expose_secret().len() < defs::PASSWORD_MIN_LEN - 1
+        || password.expose_secret().len() > defs::PASSWORD_MAX_LEN
+    {
         return Err(ServerFnError::ServerError(String::from(
             "Provided password does not meet the length requirement. Signup Request was \
              invalid.",
         )));
+    }
+    //validate username is within length requirements
+    if username.len() < defs::USERNAME_MIN_LEN - 1 || username.len() > defs::USERNAME_MAX_LEN {
+        return Err(ServerFnError::ServerError(String::from(
+            "Provided username does not meet the length requirement. Signup Request was \
+             invalid.",
+        )));
+    }
+    //validate displayname is within length requirements
+    if displayname.len() < defs::DISPLAYNAME_MIN_LEN - 1
+        || displayname.len() > defs::DISPLAYNAME_MAX_LEN
+    {
+        return Err(ServerFnError::ServerError(String::from(
+            "Provided username does not meet the length requirement. Signup Request was \
+             invalid.",
+        )));
+    }
+    //validate displayname meets the character restrictions
+    for c in displayname.chars() {
+        if !defs::DISPLAYNAME_VALID_CHARACTERS.contains(c) {
+            return Err(ServerFnError::ServerError(String::from(
+                "Provided displayname contains disallowed characters. Signup Request was \
+                 invalid.",
+            )));
+        }
     }
     //validate email is correct format
     if EmailAddress::from_str(email.as_str()).is_err() {
@@ -179,6 +207,22 @@ pub async fn validate_login(
             ServerFnError::ServerError(String::from("Login Request was invalid."))
         }
     })?;
+    //validate password is within length requirements
+    if password.expose_secret().len() < defs::PASSWORD_MIN_LEN - 1
+        || password.expose_secret().len() > defs::PASSWORD_MAX_LEN
+    {
+        return Err(ServerFnError::ServerError(String::from(
+            "Provided password does not meet the length requirement. Login Request was \
+             invalid.",
+        )));
+    }
+    //validate username is within length requirements
+    if username.len() < defs::USERNAME_MIN_LEN - 1 || username.len() > defs::USERNAME_MAX_LEN {
+        return Err(ServerFnError::ServerError(String::from(
+            "Provided username does not meet the length requirement. Login Request was \
+             invalid.",
+        )));
+    }
     let id = validate_credentials(username.clone(), password).await?;
     log::trace!("login: successful login for user: {username}");
     Ok(id)

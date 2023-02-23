@@ -1,5 +1,6 @@
 pub mod cookies;
 pub mod database;
+pub mod defs;
 pub mod fileserv;
 pub mod pages;
 pub mod security;
