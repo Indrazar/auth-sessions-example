@@ -47,12 +47,7 @@ async fn main() {
         .with_module_level("auth_sessions_example", log::LevelFilter::Trace)
         .init()
         .expect("couldn't initialize logging");
-    //the logging levels are:
-    //Error
-    //Warn
-    //Info
-    //Debug
-    //Trace
+    //the logging levels are: Error, Warn, Info, Debug, Trace
 
     let rustls_config = RustlsConfig::from_pem_file(
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -108,7 +103,6 @@ async fn main() {
 async fn redirect_http_to_https(ports: Ports) {
     fn make_https(host: String, uri: Uri, ports: Ports) -> Result<Uri, BoxError> {
         let mut parts = uri.into_parts();
-
         parts.scheme = Some(axum::http::uri::Scheme::HTTPS);
 
         if parts.path_and_query.is_none() {
@@ -124,11 +118,8 @@ async fn redirect_http_to_https(ports: Ports) {
         };
 
         parts.authority = Some(https_host.parse()?);
-
         let result = Uri::from_parts(parts)?;
-        //log::trace!("uri::from_parts {:#?}", result.clone());
-
-        Ok(result) //Ok(Uri::from_parts(parts)?)
+        Ok(result)
     }
 
     let redirect = move |Host(host): Host, uri: Uri| async move {

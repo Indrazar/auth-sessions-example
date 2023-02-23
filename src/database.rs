@@ -31,7 +31,6 @@ pub async fn user_display_name(id: Uuid) -> Result<String, ServerFnError> {
             return Err(ServerFnError::ServerError(String::from("Invalid Session")));
         }
     };
-
     let row = sqlx::query_as!(
         RetrieveDisplayname,
         r#"SELECT displayname FROM users WHERE user_id = ?"#,

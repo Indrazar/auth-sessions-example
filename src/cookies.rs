@@ -13,6 +13,23 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 }}
 
 #[cfg(feature = "ssr")]
+pub fn destroy_session(cx: Scope) {
+    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
+        Some(rp) => rp, // actual user request
+        None => return, // no request, building routes in main.rs
+    };
+    response.append_header(
+        SET_COOKIE,
+        HeaderValue::from_str(
+            "SESSIONID=deleted; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0; Secure; \
+             SameSite=Lax; HttpOnly; Path=/",
+        )
+        .expect("to create header value"),
+    );
+    log::trace!("user logged out");
+}
+
+#[cfg(feature = "ssr")]
 pub async fn issue_session_cookie(
     cx: Scope,
     user_id: Uuid,
@@ -51,18 +68,6 @@ pub async fn validate_session(cx: Scope) -> Result<Option<Uuid>, ServerFnError> 
     let unverified_session_id = parse_session_cookie(http_req);
     validate_token(unverified_session_id).await
     // do not renew cookies every time, force logins every 30 days
-    //// build header to apply renewed cookie
-    //let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
-    //    Some(ro) => ro,
-    //    None => return,
-    //};
-    //let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
-    //let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
-    //response.append_header(
-    //    SET_COOKIE,
-    //    HeaderValue::from_str("ssr=true; SameSite=Lax; Path=/").expect("to create header value"),
-    //);
-    //log::trace!("valid session renewed: {session_id}");
 }
 
 #[cfg(feature = "ssr")]

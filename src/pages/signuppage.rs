@@ -5,7 +5,6 @@ use crate::pages::components::{
 };
 #[cfg(feature = "ssr")]
 use crate::security::validate_registration;
-//use crate::security::register_user;
 use leptos::*;
 #[cfg(feature = "ssr")]
 use leptos_axum::redirect;
@@ -26,7 +25,6 @@ pub fn register_server_functions() -> Result<(), ServerFnError> {
 pub fn SignupPage(cx: Scope) -> impl IntoView {
     let sign_up = create_server_action::<SignUp>(cx);
     let submit_disabled = false;
-    //TODO create mutli action after sign_up server action completes
     //TODO create field validation on WASM side
 
     view! { cx,

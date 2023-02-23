@@ -59,11 +59,7 @@ async fn get_static_file(
     };
     // `ServeDir` implements `tower::Service` so we can call it with `tower::ServiceExt::oneshot`
     // This path is relative to the cargo root
-    match ServeDir::new(root)
-        .precompressed_gzip() // TODO revisit when cargo-leptos has --release gzip-ing
-        .oneshot(req)
-        .await
-    {
+    match ServeDir::new(root).precompressed_gzip().oneshot(req).await {
         Ok(res) => Ok(res.map(boxed)),
         Err(err) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,

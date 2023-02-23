@@ -11,11 +11,10 @@ cfg_if! { if #[cfg(not(feature = "ssr"))] {
     use leptos_router::NavigateOptions;
 }}
 
-/// This component forces SSR to resolve and will leave behind a javascript-
-/// enabled session cookie in the header which the WASM will read on load
-/// if the cookie is present then the WASM will not double-send
-/// if the cookie is not present then WASM will assume it navigated here
-/// through the hydration.
+/// This component forces SSR to resolve on async ssr routes. If the client
+/// has a valid session cookie the client will be redirected to the
+/// success_route if one exists. If the client does not have a valid session
+/// cookie the client will be redirected to the fail_route if one exists.
 #[component]
 pub fn LoggedInRedirect(
     cx: Scope,

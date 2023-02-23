@@ -24,7 +24,6 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 pub fn LoginPage(cx: Scope) -> impl IntoView {
     let login = create_server_action::<Login>(cx);
     let submit_disabled = false;
-    //TODO create mutli action after login server action completes
     //TODO create field validation on WASM side
 
     view! { cx,

@@ -54,18 +54,18 @@ fn set_headers(cx: Scope) {
     response.insert_header(
         axum::http::header::CONTENT_SECURITY_POLICY,
         HeaderValue::from_static(
-            // loading WASM apparently requires 'unsafe-inline' 'unsafe-eval'?
+            // loading WASM requires 'unsafe-inline' 'unsafe-eval'
             "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; \
              connect-src 'self' ws://127.0.0.1:3001/",
-        ), //media-src example.org example.net; script-src userscripts.example.com; img-src *;
+        ), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
     );
     #[cfg(not(debug_assertions))]
     response.insert_header(
         axum::http::header::CONTENT_SECURITY_POLICY,
         HeaderValue::from_static(
-            // loading WASM apparently requires 'unsafe-inline' 'unsafe-eval'?
+            // loading WASM requires 'unsafe-inline' 'unsafe-eval'
             "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'",
-        ), //media-src example.org example.net; script-src userscripts.example.com; img-src *;
+        ), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
     );
     response.insert_header(
         axum::http::header::STRICT_TRANSPORT_SECURITY,
