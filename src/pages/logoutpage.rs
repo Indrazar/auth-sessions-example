@@ -3,7 +3,6 @@ use cfg_if::cfg_if;
 use leptos::*;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
-    use crate::cookies::set_ssr_cookie;
     use axum::{
         http::header::SET_COOKIE,
         http::HeaderValue,
@@ -15,36 +14,32 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     }
 }}
 
-cfg_if! { if #[cfg(not(feature = "ssr"))] {
-    use crate::cookies::consume_ssr_cookie;
-}}
-
 #[component]
 pub fn LogoutPage(cx: Scope) -> impl IntoView {
-    let mut ssr_state: bool = false;
-    cfg_if! { if #[cfg(feature = "ssr")] {
-        destroy_session(cx);
-        set_ssr_cookie(cx);
-    }}
-
-    #[cfg(not(feature = "ssr"))]
-    match consume_ssr_cookie(&mut ssr_state) {
-        true => {
-            //do nothing, ssr handled it
-        }
-        false => {
-            //ssr did not run, so we tell the server to expire our httponly cookie
-            let destroy_action = create_server_action::<DestroySession>(cx);
-            destroy_action.dispatch(DestroySession {});
-        }
-    }
-
+    let destroy_action = create_server_action::<DestroySession>(cx);
+    let destroy_resource = create_resource(
+        cx,
+        move || (destroy_action.version().get()),
+        move |_| {
+            log::trace!("session destroy running fetcher");
+            server_destroy_session(cx)
+        },
+    );
+    let destroy_result = move || {
+        destroy_resource.read(cx).map(|n| match n {
+            Ok(()) => {}
+            Err(e) => log::error!("{:#?}", e),
+        })
+    };
     view! {cx,
         <h1>"Auth-Sessions-Example"</h1>
         <h2>"Logout Page"</h2>
         <LogHeader/>
         <p><a href="/">"Return to Landing Page"</a></p>
         <p><a href="/login">"Login Again"</a></p>
+        <Suspense fallback={|| view!{cx, <></>}}>
+        <>{destroy_result()}</>
+        </Suspense>
     }
 }
 

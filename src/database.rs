@@ -3,7 +3,7 @@ use cfg_if::cfg_if;
 cfg_if! { if #[cfg(feature = "ssr")] {
     use chrono::prelude::*;
     use leptos::ServerFnError;
-    use secrecy::{ExposeSecret, SecretString};
+    use secrecy::SecretString;
     use serde::{Deserialize, Serialize};
     use sqlx::{Connection, SqliteConnection};
     use uuid::Uuid;

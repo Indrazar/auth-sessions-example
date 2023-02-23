@@ -103,7 +103,7 @@ pub fn App(cx: Scope) -> impl IntoView {
                     <Route path="/signup" view=|cx| view! { cx, <SignupPage/> } ssr=SsrMode::Async/>
                     <Route path="/login" view=|cx| view! { cx, <LoginPage/> } ssr=SsrMode::Async/>
                     <Route path="/home" view=|cx| view! { cx, <HomePage/> }/>
-                    <Route path="/logout" view=|cx| view! { cx, <LogoutPage/> }/>
+                    <Route path="/logout" view=|cx| view! { cx, <LogoutPage/> } ssr=SsrMode::Async/>
                 </Routes>
             </main>
         </Router>

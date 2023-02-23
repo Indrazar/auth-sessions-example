@@ -1,5 +1,4 @@
 use cfg_if::cfg_if;
-use leptos::*;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::database::{associate_session, validate_token};
@@ -8,10 +7,9 @@ cfg_if! { if #[cfg(feature = "ssr")] {
         http::HeaderValue,
     };
     use chrono::prelude::*;
+    use leptos::*;
     use leptos_axum::RequestParts;
     use uuid::Uuid;
-} else {
-    use wasm_bindgen::JsCast;
 }}
 
 #[cfg(feature = "ssr")]
@@ -92,48 +90,4 @@ pub fn get_cookie_value(cookies: &str, key: &str) -> Option<String> {
             None
         }
     })
-}
-
-#[cfg(feature = "ssr")]
-pub fn set_ssr_cookie(cx: Scope) {
-    // if we are in the router then do not attempt to set the ssr cookie
-    // build header to apply renewed cookie
-    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
-        Some(ro) => ro,
-        None => return,
-    };
-    response.append_header(
-        SET_COOKIE,
-        HeaderValue::from_str("ssr=true; SameSite=Lax; Path=/")
-            .expect("to create header value"),
-    );
-    log::trace!("redirect set an ssr cookie");
-}
-
-/// consume_ssr_cookie requires a mutable reference to the ssr_state
-/// this way even if the cookie was already consumed by another component then
-/// this component can prevent further wasted server calls.
-/// This will only work on single level scoped pages, deeply nested componenets
-/// will need to relay this reference down and into it's components
-#[cfg(not(feature = "ssr"))]
-pub fn consume_ssr_cookie(ssr_state: &mut bool) -> bool {
-    match *ssr_state {
-        true => return true, /* don't need to do anything, this function already ran and consumed the cookie */
-        false => {}          // continue below
-    }
-    let doc = document().unchecked_into::<web_sys::HtmlDocument>();
-    let cookie = doc.cookie().unwrap_or_default();
-    let result = cookie.contains("ssr=true");
-    match result {
-        true => {
-            doc.set_cookie(
-                "ssr=deleted; Expires=Thu, 01-Jan-1970 00:00:01 GMT; Max-Age=0; \
-                 SameSite=Lax; Path=/",
-            )
-            .expect("could not delete cookie");
-            (*ssr_state) = true;
-            true
-        }
-        false => false,
-    }
 }

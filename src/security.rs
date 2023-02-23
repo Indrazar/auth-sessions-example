@@ -2,7 +2,7 @@ use cfg_if::cfg_if;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::get_cookie_value;
-    use crate::database::{db, register_user, unique_cred_check, retrieve_credentials, UniqueCredential};
+    use crate::database::{register_user, unique_cred_check, retrieve_credentials, UniqueCredential};
     use crate::defs;
     use argon2::{
         password_hash::{PasswordVerifier, SaltString},
@@ -16,7 +16,6 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use leptos::*;
     use leptos_axum::RequestParts;
     use secrecy::{ExposeSecret, SecretString};
-    use serde::{Deserialize, Serialize};
     use std::str::FromStr;
     use uuid::Uuid;
 }}
