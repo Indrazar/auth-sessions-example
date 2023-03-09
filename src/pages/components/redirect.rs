@@ -2,7 +2,7 @@ use cfg_if::cfg_if;
 use leptos::*;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
-    //use crate::cookies::set_ssr_cookie;
+    use crate::database::pool;
     use crate::cookies::validate_session;
     use leptos_axum::redirect;
 }}
@@ -84,9 +84,7 @@ pub fn LoggedInRedirect(
                 Err(e) => match &fail_route {
                     Some(route) => {
                         //redirect to fail_route if present
-                        log::trace!(
-                            "server encountered error {e}, redirecting to fail_route: {route}"
-                        );
+                        log::trace!("{e}, redirecting to fail_route: {route}");
 
                         #[cfg(feature = "ssr")]
                         redirect(cx, route.as_str());
@@ -104,7 +102,7 @@ pub fn LoggedInRedirect(
                     }
                     None => {
                         //if no fail_route do nothing
-                        log::trace!("server encountered error {e}, no redirect");
+                        log::trace!("{e}, no redirect");
                     }
                 },
             }
@@ -120,7 +118,8 @@ pub fn LoggedInRedirect(
 
 #[server(ProcessRedirect, "/api")]
 async fn process_redirect(cx: Scope) -> Result<bool, ServerFnError> {
-    match validate_session(cx).await? {
+    let pool = pool(cx)?;
+    match validate_session(cx, &pool).await? {
         None => Ok(false),
         Some(_) => Ok(true),
     }

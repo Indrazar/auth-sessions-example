@@ -1,5 +1,5 @@
 # Does This Work?
-Kind of. It's mostly a learning experience and I have no idea what I am doing. This section will disappear once it is a more serious template.
+Kind of. It's mostly a learning experience and I have only a small idea what I am doing. This section will disappear once it is a more serious template.
 
 # Notes about Spam
 Opening this to the greater internet is likey a VERY BAD idea unless you at a minimum implement recaptcha (just an example, not a recommendation) and/or other bot mitigations.
@@ -7,7 +7,10 @@ The bots will arrive and they will sell you uggs.
 
 # Leptos Auth-Sessions-Example
 
-This project is made with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum) but without using [axum-sessions](https://github.com/maxcountryman/axum-sessions). You should probally use axum-sessions and not this.
+This project is made with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum) but without using [axum-sessions](https://github.com/maxcountryman/axum-sessions).
+
+### Sidenote:
+This project is not using  `axum-sessions` due to the way its dependency `async-session` incorrectly implements clone in one of the core interfaces. This [issue is tracked here](https://github.com/http-rs/async-session/pull/57).
 
 ## Installing cargo-leptos
 
@@ -83,37 +86,31 @@ cargo leptos watch
 ## Running in prod mode
 
 First update the `Cargo.toml` setting: `env = "PROD"` for Production mode
+Then ensure the `.env` settings are correct for production.
 
 ```bash
 cargo leptos serve --release
 ```
 
-## Executing on a Remote Machine Without the Toolchain
-After running a `cargo leptos build --release` the minimum files needed are:
-
-1. The server binary located in `target/server/release`
-2. The `site` directory and all files within located in `target/site`
-
-The code supports `gzip`-ing all files within the `site` directory ahead (or even during) of running the binary.
-
-3. Copy these files to your remote server. The directory structure should be:
+## Executing on a Remote Machine Without the Rust Toolchain
+1. Update the `Cargo.toml` setting: `env = "PROD"` for Production mode  
+2. Run `cargo leptos build --release` on the build machine.
+3. Prepare:  
+    1. Server binary located in `target/server/release`  
+    2. `site` directory and all files within located in `target/site`  
+    3. `.env` file with all the environment variables or the environment variables set.  
+        note: `LIVE_HTTP_REDIRECT` and `LEPTOS_SITE_ADDR` highly depend on where and how you are deploying the server.
+4. Copy these files to your remote server. The directory structure should be:
 ```text
+.env
 auth-sessions-example
 site/
 ```
-4. Set the following environment variables (updating as needed):
-```text
-LEPTOS_OUTPUT_NAME="auth-sessions-example"
-LEPTOS_SITE_ROOT="site"
-LEPTOS_SITE_PKG_DIR="pkg"
-LEPTOS_SITE_ADDR="0.0.0.0:443"
-```
-LEPTOS_SITE_ADDR highly depends on where and how you are deploying it.
-
-5. Copy `.env.example` into `.env` and make sure the settings are correct.
-6. Generate a new database and apply the included migration.
+5. The code supports `gzip`-ing all files within the `site` directory ahead of running the binary.
+6. Copy `.env.example` into `.env` and make sure the settings are correct.
+7. Generate a new database and apply the included migration.
 ```
 sqlx database create
 sqlx migrate run
 ```
-7. Finally, run the server binary.
+8. Finally, run the server binary.

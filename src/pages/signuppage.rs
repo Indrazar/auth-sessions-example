@@ -1,3 +1,5 @@
+#[cfg(feature = "ssr")]
+use crate::database::pool;
 use crate::pages::components::{
     csrf::{CSRFField, CSRFFieldProps},
     logheader::{LogHeader, LogHeaderProps},
@@ -69,7 +71,7 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
     }
 }
 
-#[server(SignUp, "/api")]
+#[server(SignUp, "/auth")]
 pub async fn sign_up(
     cx: Scope,
     csrf: String,
@@ -80,6 +82,7 @@ pub async fn sign_up(
     password: String,
     password_confirmation: String,
 ) -> Result<(), ServerFnError> {
+    let pool = pool(cx)?;
     validate_registration(
         cx,
         csrf,
@@ -89,6 +92,7 @@ pub async fn sign_up(
         email_confirmation,
         SecretString::from(password),
         SecretString::from(password_confirmation),
+        &pool,
     )
     .await?;
     redirect(cx, "/login");

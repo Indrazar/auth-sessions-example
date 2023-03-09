@@ -15,6 +15,7 @@ cfg-if = "1"
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock", "std"] }
 console_error_panic_hook = "0.1"
 console_log = "0.2"
+dotenvy = { version = "0.15", optional = true }
 email_address = { version = "0.2", optional = true }
 http = "0.2"
 #jsonwebtoken = { version = "8.0", optional = true }
@@ -53,6 +54,7 @@ ssr = [
     "dep:axum",
     "dep:axum-server",
     "dep:base64",
+    "dep:dotenvy",
     "dep:tokio",
     "dep:tower",
     "dep:tower-http",

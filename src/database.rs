@@ -2,19 +2,12 @@ use cfg_if::cfg_if;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use chrono::prelude::*;
-    use leptos::ServerFnError;
+    use leptos::*;
     use secrecy::SecretString;
     use serde::{Deserialize, Serialize};
-    use sqlx::{Connection, SqliteConnection};
+    use sqlx::SqlitePool;
     use uuid::Uuid;
 }}
-
-#[cfg(feature = "ssr")]
-pub async fn db() -> Result<SqliteConnection, ServerFnError> {
-    SqliteConnection::connect("sqlite:auth-sessions-example.db")
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))
-}
 
 #[cfg(feature = "ssr")]
 #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow)]
@@ -23,20 +16,20 @@ struct RetrieveDisplayname {
 }
 
 #[cfg(feature = "ssr")]
-pub async fn user_display_name(id: Uuid) -> Result<String, ServerFnError> {
-    let mut conn = match db().await {
-        Ok(res) => res,
-        Err(e) => {
-            log::error!("failed to connect to database in validate_token: {e}");
-            return Err(ServerFnError::ServerError(String::from("Invalid Session")));
-        }
-    };
+pub fn pool(cx: Scope) -> Result<SqlitePool, ServerFnError> {
+    Ok(use_context::<SqlitePool>(cx)
+        .ok_or("Pool missing.")
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))?)
+}
+
+#[cfg(feature = "ssr")]
+pub async fn user_display_name(id: Uuid, pool: &SqlitePool) -> Result<String, ServerFnError> {
     let row = sqlx::query_as!(
         RetrieveDisplayname,
         r#"SELECT displayname FROM users WHERE user_id = ?"#,
         id
     )
-    .fetch_one(&mut conn)
+    .fetch_one(pool)
     .await;
     let displayname: String = match row {
         Ok(res) => res.displayname,
@@ -63,17 +56,9 @@ pub async fn register_user(
     displayname: String,
     email: String,
     password_hash: String,
+    pool: &SqlitePool,
 ) -> Result<Uuid, ServerFnError> {
     let id = Uuid::now_v7();
-    let mut conn = match db().await {
-        Ok(res) => res,
-        Err(e) => {
-            log::error!("failed to connect to database in validate_credentials: {e}");
-            return Err(ServerFnError::ServerError(String::from(
-                "Signin Request failed.",
-            )));
-        }
-    };
     let query_res = sqlx::query!(
         "INSERT INTO users (user_id, username, displayname, email, verified, password_hash) \
          VALUES (?, ?, ?, ?, ?, ?)",
@@ -84,7 +69,7 @@ pub async fn register_user(
         false,
         password_hash,
     )
-    .execute(&mut conn)
+    .execute(pool)
     .await;
     match query_res {
         Ok(val) => {
@@ -108,23 +93,15 @@ pub async fn associate_session(
     user_id: Uuid,
     session_id: &String,
     expire_time: DateTime<Utc>,
+    pool: &SqlitePool,
 ) -> Result<(), ServerFnError> {
-    let mut conn = match db().await {
-        Ok(res) => res,
-        Err(e) => {
-            log::error!("failed to connect to database in username_check: {e}");
-            return Err(ServerFnError::ServerError(String::from(
-                "Login Request failed.",
-            )));
-        }
-    };
     let query_res = sqlx::query!(
         "INSERT INTO active_sesssions (session_id, user_id, expiry) VALUES (?, ?, ?)",
         session_id,
         user_id,
         expire_time
     )
-    .execute(&mut conn)
+    .execute(pool)
     .await;
     match query_res {
         Ok(val) => {
@@ -153,20 +130,14 @@ struct ValidateSession {
 #[cfg(feature = "ssr")]
 pub async fn validate_token(
     untrusted_session: String,
+    pool: &SqlitePool,
 ) -> Result<Option<uuid::Uuid>, ServerFnError> {
-    let mut conn = match db().await {
-        Ok(res) => res,
-        Err(e) => {
-            log::error!("failed to connect to database in validate_token: {e}");
-            return Err(ServerFnError::ServerError(String::from("Invalid Session")));
-        }
-    };
     let row = sqlx::query_as!(
         ValidateSession,
         r#"SELECT user_id AS "user_id: Uuid", expiry AS "expiry: DateTime<Utc>" FROM active_sesssions WHERE session_id = ?"#,
         untrusted_session
     )
-    .fetch_one(&mut conn)
+    .fetch_one(pool)
     .await;
     let (true_uuid, expiry): (Uuid, DateTime<Utc>) = match row {
         Ok(cred) => (cred.user_id, cred.expiry),
@@ -188,7 +159,7 @@ pub async fn validate_token(
             "DELETE FROM active_sesssions WHERE session_id = ?",
             untrusted_session
         )
-        .execute(&mut conn)
+        .execute(pool)
         .await;
         match remove_res {
             Ok(val) => {
@@ -217,22 +188,14 @@ struct ValidateCredential {
 #[cfg(feature = "ssr")]
 pub async fn retrieve_credentials(
     username: &String,
+    pool: &SqlitePool,
 ) -> Result<Option<(Uuid, SecretString)>, ServerFnError> {
-    let mut conn = match db().await {
-        Ok(res) => res,
-        Err(e) => {
-            log::error!("failed to connect to database in validate_credentials: {e}");
-            return Err(ServerFnError::ServerError(String::from(
-                "Login Request failed.",
-            )));
-        }
-    };
     let row = sqlx::query_as!(
         ValidateCredential,
         r#"SELECT user_id AS "user_id: Uuid", password_hash FROM users WHERE username = ?"#,
         username
     )
-    .fetch_one(&mut conn)
+    .fetch_one(pool)
     .await;
     match row {
         Ok(cred) => Ok(Some((cred.user_id, SecretString::from(cred.password_hash)))),
@@ -257,7 +220,10 @@ pub enum UniqueCredential {
 }
 
 #[cfg(feature = "ssr")]
-pub async fn unique_cred_check(input: UniqueCredential) -> Result<(), ServerFnError> {
+pub async fn unique_cred_check(
+    input: UniqueCredential,
+    pool: SqlitePool,
+) -> Result<(), ServerFnError> {
     // we won't require usernames =/= display names
     //
     // we will require both usernames and display names both do not already exist
@@ -270,26 +236,18 @@ pub async fn unique_cred_check(input: UniqueCredential) -> Result<(), ServerFnEr
     // display name enumeration should be fine since you can see those while signed in
     // and display names are not used for sign in, only for displaying to other users
     match input {
-        UniqueCredential::Username(username) => username_check(username).await,
-        UniqueCredential::DisplayName(displayname) => displayname_check(displayname).await,
-        //UniqueCredential::Email(email) => email_check(email).await,
+        UniqueCredential::Username(username) => username_check(username, pool).await,
+        UniqueCredential::DisplayName(displayname) => {
+            displayname_check(displayname, pool).await
+        } //UniqueCredential::Email(email) => email_check(email).await,
     }
 }
 
 #[cfg(feature = "ssr")]
-async fn username_check(username: String) -> Result<(), ServerFnError> {
-    let mut conn = match db().await {
-        Ok(res) => res,
-        Err(e) => {
-            log::error!("failed to connect to database in username_check: {e}");
-            return Err(ServerFnError::ServerError(String::from(
-                "Signup Request failed.",
-            )));
-        }
-    };
+async fn username_check(username: String, pool: SqlitePool) -> Result<(), ServerFnError> {
     let user_exists =
         match sqlx::query!("SELECT username FROM users WHERE username = ?", username)
-            .fetch_one(&mut conn)
+            .fetch_one(&pool)
             .await
         {
             Ok(_) => true, //username.eq(&row.username)
@@ -315,21 +273,15 @@ async fn username_check(username: String) -> Result<(), ServerFnError> {
 }
 
 #[cfg(feature = "ssr")]
-async fn displayname_check(displayname: String) -> Result<(), ServerFnError> {
-    let mut conn = match db().await {
-        Ok(res) => res,
-        Err(e) => {
-            log::error!("failed to connect to database in displayname_check: {e}");
-            return Err(ServerFnError::ServerError(String::from(
-                "Signup Request failed.",
-            )));
-        }
-    };
+async fn displayname_check(
+    displayname: String,
+    pool: SqlitePool,
+) -> Result<(), ServerFnError> {
     let display_exists = match sqlx::query!(
         "SELECT displayname FROM users WHERE displayname = ?",
         displayname
     )
-    .fetch_one(&mut conn)
+    .fetch_one(&pool)
     .await
     {
         Ok(_) => true, //displayname.eq(&row.displayname)
@@ -354,18 +306,9 @@ async fn displayname_check(displayname: String) -> Result<(), ServerFnError> {
 }
 
 /*#[cfg(feature = "ssr")]
-async fn email_check(email: String) -> Result<(), ServerFnError> {
-    let mut conn = match db().await {
-        Ok(res) => res,
-        Err(e) => {
-            log::error!("failed to connect to database in email_check: {e}");
-            return Err(ServerFnError::ServerError(String::from(
-                "Signup Request failed.",
-            )));
-        }
-    };
+async fn email_check(email: String, pool: SqlitePool) -> Result<(), ServerFnError> {
     let email_exists = match sqlx::query!("SELECT email FROM users WHERE email = ?", email)
-        .fetch_one(&mut conn)
+        .fetch_one(&pool)
         .await
     {
         Ok(_) => true, //email.eq(&row.email)

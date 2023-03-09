@@ -39,7 +39,7 @@ pub fn LogoutPage(cx: Scope) -> impl IntoView {
     }
 }
 
-#[server(DestroySession, "/api")]
+#[server(DestroySession, "/auth")]
 async fn server_destroy_session(cx: Scope) -> Result<(), ServerFnError> {
     destroy_session(cx);
     Ok(())

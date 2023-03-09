@@ -9,6 +9,7 @@ use leptos_router::*;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::issue_session_cookie;
+    use crate::database::pool;
     use crate::security::{validate_login, gen_128bit_base64};
     use secrecy::SecretString;
     use leptos_axum::redirect;
@@ -51,16 +52,18 @@ pub fn LoginPage(cx: Scope) -> impl IntoView {
     }
 }
 
-#[server(Login, "/api")]
+#[server(Login, "/auth")]
 pub async fn login(
     cx: Scope,
     csrf: String,
     username: String,
     password: String,
 ) -> Result<(), ServerFnError> {
-    let user_id = validate_login(cx, csrf, username, SecretString::from(password)).await?;
+    let pool = pool(cx)?;
+    let user_id =
+        validate_login(cx, csrf, username, SecretString::from(password), &pool).await?;
     let session_id = gen_128bit_base64();
-    issue_session_cookie(cx, user_id, session_id).await?;
+    issue_session_cookie(cx, user_id, session_id, &pool).await?;
     redirect(cx, "/home");
     Ok(())
 }

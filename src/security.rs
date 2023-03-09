@@ -17,6 +17,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use leptos_axum::RequestParts;
     use secrecy::{ExposeSecret, SecretString};
     use std::str::FromStr;
+    use sqlx::SqlitePool;
     use uuid::Uuid;
 }}
 
@@ -85,6 +86,7 @@ pub async fn validate_registration(
     email_confirmation: String,
     password: SecretString,
     password_confirmation: SecretString,
+    pool: &SqlitePool,
 ) -> Result<(), ServerFnError> {
     let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
         None => {
@@ -167,14 +169,18 @@ pub async fn validate_registration(
             "Signup Request was invalid.",
         )));
     }
-    unique_cred_check(UniqueCredential::Username(username.clone())).await?;
-    unique_cred_check(UniqueCredential::DisplayName(displayname.clone())).await?;
+    unique_cred_check(UniqueCredential::Username(username.clone()), pool.clone()).await?;
+    unique_cred_check(
+        UniqueCredential::DisplayName(displayname.clone()),
+        pool.clone(),
+    )
+    .await?;
     //unique_cred_check(UniqueCredential::Email(email)).await?;
     let password_hash = gen_hash(password)?;
     log::trace!(
         "signup: successful registration for username: {username}, displayname: {displayname}"
     );
-    register_user(username, displayname, email, password_hash).await?;
+    register_user(username, displayname, email, password_hash, pool).await?;
     log::trace!("signup: db write succeeded for new user");
     Ok(())
 }
@@ -185,6 +191,7 @@ pub async fn validate_login(
     csrf: String,
     username: String,
     password: SecretString,
+    pool: &SqlitePool,
 ) -> Result<Uuid, ServerFnError> {
     let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
         None => {
@@ -222,7 +229,7 @@ pub async fn validate_login(
              invalid.",
         )));
     }
-    let id = validate_credentials(username.clone(), password).await?;
+    let id = validate_credentials(username.clone(), password, pool).await?;
     log::trace!("login: successful login for user: {username}");
     Ok(id)
 }
@@ -255,9 +262,10 @@ enum ValidateHashError {
 pub async fn validate_credentials(
     username: String,
     untrusted_password: SecretString,
+    pool: &SqlitePool,
 ) -> Result<uuid::Uuid, ServerFnError> {
     let (true_uuid, stored_phc): (Uuid, SecretString) =
-        match retrieve_credentials(&username).await {
+        match retrieve_credentials(&username, pool).await {
             Ok(Some(x)) => x,
             Ok(None) => {
                 //execute some time wasting to prevent username enumeration
