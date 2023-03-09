@@ -52,7 +52,7 @@ pub fn LoginPage(cx: Scope) -> impl IntoView {
     }
 }
 
-#[server(Login, "/auth")]
+#[server(Login, "/api")]
 pub async fn login(
     cx: Scope,
     csrf: String,

@@ -14,8 +14,8 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
         extract::{Extension, Host, Path, ConnectInfo},
         handler::HandlerWithoutStateExt,
         http::{Request, StatusCode, Uri, header::HeaderMap},
-        response::{Redirect, IntoResponse},
-        routing::post,
+        response::{Response, Redirect, IntoResponse},
+        routing::{post, get},
         BoxError, Router,
         body::Body as AxumBody,
     };
@@ -114,14 +114,11 @@ async fn main() {
     // build our application with a route
     let app = Router::new()
         .route("/api/*fn_name", post(api_fn_handler))
-        .route("/auth/*fn_name", post(auth_fn_handler))
-        .leptos_routes(leptos_options.clone(), routes, |cx| {
-            view! { cx, <App/> }
-        })
+        .leptos_routes_with_handler(routes, get(leptos_routes_handler))
         .fallback(file_and_error_handler)
         .layer(Extension(Arc::new(leptos_options)))
-        .layer(CompressionLayer::new())
-        .layer(Extension(pool_options));
+        .layer(Extension(pool_options))
+        .layer(CompressionLayer::new());
 
     // spawn a redirect http to https
     tokio::spawn(redirect_http_to_https(ports));
@@ -135,26 +132,23 @@ async fn main() {
 }
 
 #[cfg(feature = "ssr")]
-async fn api_fn_handler(
+async fn leptos_routes_handler(
     Extension(pool): Extension<SqlitePool>,
-    path: Path<String>,
-    headers: HeaderMap,
-    request: Request<AxumBody>,
-) -> impl IntoResponse {
-    log::trace!("api_fn_handler: path: {:#?}", path);
-    handle_server_fns_with_context(
-        path,
-        headers,
+    Extension(options): Extension<Arc<LeptosOptions>>,
+    req: Request<AxumBody>,
+) -> Response {
+    let handler = leptos_axum::render_app_to_stream_with_context(
+        (*options).clone(),
         move |cx| {
             provide_context(cx, pool.clone());
         },
-        request,
-    )
-    .await
+        |cx| view! { cx, <App/> },
+    );
+    handler(req).await.into_response()
 }
 
 #[cfg(feature = "ssr")]
-async fn auth_fn_handler(
+async fn api_fn_handler(
     Extension(pool): Extension<SqlitePool>,
     Extension(connect_info): Extension<ConnectInfo<SocketAddr>>,
     path: Path<String>,
@@ -162,7 +156,7 @@ async fn auth_fn_handler(
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
     log::trace!(
-        "auth_fn_handler: path: {:#?}, connect_info: {:#?}",
+        "api_fn_handler: path: {:#?}, connect_info: {:#?}",
         path,
         connect_info
     );

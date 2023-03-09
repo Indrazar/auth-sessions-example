@@ -71,7 +71,7 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
     }
 }
 
-#[server(SignUp, "/auth")]
+#[server(SignUp, "/api")]
 pub async fn sign_up(
     cx: Scope,
     csrf: String,
