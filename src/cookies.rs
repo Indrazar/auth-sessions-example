@@ -1,7 +1,7 @@
 use cfg_if::cfg_if;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
-    use crate::database::{associate_session, validate_token};
+    use crate::database::{associate_session, drop_session, validate_token};
     use axum::{
         http::header::{COOKIE, SET_COOKIE},
         http::HeaderValue,
@@ -13,7 +13,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 }}
 
 #[cfg(feature = "ssr")]
-pub fn destroy_session(cx: Scope) {
+pub async fn destroy_session(cx: Scope) {
     let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
         Some(rp) => rp, // actual user request
         None => return, // no request, building routes in main.rs
@@ -26,7 +26,14 @@ pub fn destroy_session(cx: Scope) {
         )
         .expect("to create header value"),
     );
-    log::trace!("user logged out");
+    // extract request, bailing if there is none
+    let http_req = match use_context::<RequestParts>(cx) {
+        Some(rp) => rp, // actual user request
+        None => return, // no request, building routes in main.rs
+    };
+    // grab request's session
+    let unverified_session_id = parse_session_cookie(http_req);
+    drop_session(cx, &unverified_session_id).await;
 }
 
 #[cfg(feature = "ssr")]
@@ -64,7 +71,7 @@ pub async fn validate_session(cx: Scope) -> Result<Option<Uuid>, ServerFnError> 
         Some(rp) => rp,          // actual user request
         None => return Ok(None), // no request, building routes in main.rs
     };
-    // grab request's session, bailing if there is none
+    // grab request's session
     let unverified_session_id = parse_session_cookie(http_req);
     validate_token(cx, unverified_session_id).await
     // do not renew cookies every time, force logins every 30 days

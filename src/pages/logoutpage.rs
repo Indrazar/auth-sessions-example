@@ -41,6 +41,6 @@ pub fn LogoutPage(cx: Scope) -> impl IntoView {
 
 #[server(DestroySession, "/api")]
 async fn server_destroy_session(cx: Scope) -> Result<(), ServerFnError> {
-    destroy_session(cx);
+    destroy_session(cx).await;
     Ok(())
 }

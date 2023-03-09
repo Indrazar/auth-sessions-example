@@ -124,6 +124,40 @@ pub async fn associate_session(
 }
 
 #[cfg(feature = "ssr")]
+pub async fn drop_session(cx: Scope, session_id: &String) {
+    let pool = match pool(cx) {
+        Ok(pool) => pool,
+        Err(e) => {
+            log::error!("could not retrieve pool in drop_session: {e}");
+            return;
+        }
+    };
+    let remove_res = sqlx::query!(
+        "DELETE FROM active_sesssions WHERE session_id = ?",
+        session_id
+    )
+    .execute(&pool)
+    .await;
+    match remove_res {
+        Ok(val) => {
+            if val.rows_affected() != 1 {
+                log::trace!(
+                    "removal of session from database failed, rows_affected: {}",
+                    val.rows_affected()
+                );
+                return;
+            }
+            log::trace!("session_id: {session_id} logged out: {:#?}", val);
+            return;
+        }
+        Err(e) => {
+            log::error!("removal of session from database failed: {e}");
+            return;
+        }
+    };
+}
+
+#[cfg(feature = "ssr")]
 #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow)]
 struct ValidateSession {
     user_id: Uuid,
@@ -150,7 +184,7 @@ pub async fn validate_token(
                 return Ok(None);
             }
             _ => {
-                log::trace!("invalid session provided with error: {e}");
+                log::debug!("invalid session provided with error: {e}");
                 return Err(ServerFnError::ServerError(String::from(
                     "Session retrieval failed",
                 )));
@@ -159,27 +193,11 @@ pub async fn validate_token(
     };
     //validate NOT expired
     if expiry < Utc::now() {
-        let remove_res = sqlx::query!(
-            "DELETE FROM active_sesssions WHERE session_id = ?",
-            untrusted_session
-        )
-        .execute(&pool)
-        .await;
-        match remove_res {
-            Ok(val) => {
-                if val.rows_affected() != 1 {
-                    log::trace!("removal of expired session from database failed");
-                    return Ok(None);
-                }
-                return Ok(None);
-            }
-            Err(_) => {
-                log::trace!("removal of expired session from database failed");
-                return Ok(None);
-            }
-        };
+        drop_session(cx, &untrusted_session).await;
+        Ok(None)
+    } else {
+        Ok(Some(true_uuid))
     }
-    Ok(Some(true_uuid))
 }
 
 #[cfg(feature = "ssr")]
