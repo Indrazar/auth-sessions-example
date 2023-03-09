@@ -17,19 +17,20 @@ struct RetrieveDisplayname {
 
 #[cfg(feature = "ssr")]
 pub fn pool(cx: Scope) -> Result<SqlitePool, ServerFnError> {
-    Ok(use_context::<SqlitePool>(cx)
+    use_context::<SqlitePool>(cx)
         .ok_or("Pool missing.")
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?)
+        .map_err(|e| ServerFnError::ServerError(e.to_string()))
 }
 
 #[cfg(feature = "ssr")]
-pub async fn user_display_name(id: Uuid, pool: &SqlitePool) -> Result<String, ServerFnError> {
+pub async fn user_display_name(cx: Scope, id: Uuid) -> Result<String, ServerFnError> {
+    let pool = pool(cx)?;
     let row = sqlx::query_as!(
         RetrieveDisplayname,
         r#"SELECT displayname FROM users WHERE user_id = ?"#,
         id
     )
-    .fetch_one(pool)
+    .fetch_one(&pool)
     .await;
     let displayname: String = match row {
         Ok(res) => res.displayname,
@@ -52,12 +53,13 @@ pub async fn user_display_name(id: Uuid, pool: &SqlitePool) -> Result<String, Se
 
 #[cfg(feature = "ssr")]
 pub async fn register_user(
+    cx: Scope,
     username: String,
     displayname: String,
     email: String,
     password_hash: String,
-    pool: &SqlitePool,
 ) -> Result<Uuid, ServerFnError> {
+    let pool = pool(cx)?;
     let id = Uuid::now_v7();
     let query_res = sqlx::query!(
         "INSERT INTO users (user_id, username, displayname, email, verified, password_hash) \
@@ -69,7 +71,7 @@ pub async fn register_user(
         false,
         password_hash,
     )
-    .execute(pool)
+    .execute(&pool)
     .await;
     match query_res {
         Ok(val) => {
@@ -90,18 +92,19 @@ pub async fn register_user(
 
 #[cfg(feature = "ssr")]
 pub async fn associate_session(
+    cx: Scope,
     user_id: Uuid,
     session_id: &String,
     expire_time: DateTime<Utc>,
-    pool: &SqlitePool,
 ) -> Result<(), ServerFnError> {
+    let pool = pool(cx)?;
     let query_res = sqlx::query!(
         "INSERT INTO active_sesssions (session_id, user_id, expiry) VALUES (?, ?, ?)",
         session_id,
         user_id,
         expire_time
     )
-    .execute(pool)
+    .execute(&pool)
     .await;
     match query_res {
         Ok(val) => {
@@ -129,15 +132,16 @@ struct ValidateSession {
 
 #[cfg(feature = "ssr")]
 pub async fn validate_token(
+    cx: Scope,
     untrusted_session: String,
-    pool: &SqlitePool,
 ) -> Result<Option<uuid::Uuid>, ServerFnError> {
+    let pool = pool(cx)?;
     let row = sqlx::query_as!(
         ValidateSession,
         r#"SELECT user_id AS "user_id: Uuid", expiry AS "expiry: DateTime<Utc>" FROM active_sesssions WHERE session_id = ?"#,
         untrusted_session
     )
-    .fetch_one(pool)
+    .fetch_one(&pool)
     .await;
     let (true_uuid, expiry): (Uuid, DateTime<Utc>) = match row {
         Ok(cred) => (cred.user_id, cred.expiry),
@@ -159,7 +163,7 @@ pub async fn validate_token(
             "DELETE FROM active_sesssions WHERE session_id = ?",
             untrusted_session
         )
-        .execute(pool)
+        .execute(&pool)
         .await;
         match remove_res {
             Ok(val) => {
@@ -187,15 +191,16 @@ struct ValidateCredential {
 
 #[cfg(feature = "ssr")]
 pub async fn retrieve_credentials(
+    cx: Scope,
     username: &String,
-    pool: &SqlitePool,
 ) -> Result<Option<(Uuid, SecretString)>, ServerFnError> {
+    let pool = pool(cx)?;
     let row = sqlx::query_as!(
         ValidateCredential,
         r#"SELECT user_id AS "user_id: Uuid", password_hash FROM users WHERE username = ?"#,
         username
     )
-    .fetch_one(pool)
+    .fetch_one(&pool)
     .await;
     match row {
         Ok(cred) => Ok(Some((cred.user_id, SecretString::from(cred.password_hash)))),
@@ -221,8 +226,8 @@ pub enum UniqueCredential {
 
 #[cfg(feature = "ssr")]
 pub async fn unique_cred_check(
+    cx: Scope,
     input: UniqueCredential,
-    pool: SqlitePool,
 ) -> Result<(), ServerFnError> {
     // we won't require usernames =/= display names
     //
@@ -236,15 +241,15 @@ pub async fn unique_cred_check(
     // display name enumeration should be fine since you can see those while signed in
     // and display names are not used for sign in, only for displaying to other users
     match input {
-        UniqueCredential::Username(username) => username_check(username, pool).await,
-        UniqueCredential::DisplayName(displayname) => {
-            displayname_check(displayname, pool).await
-        } //UniqueCredential::Email(email) => email_check(email).await,
+        UniqueCredential::Username(username) => username_check(cx, username).await,
+        UniqueCredential::DisplayName(displayname) => displayname_check(cx, displayname).await,
+        /* UniqueCredential::Email(email) => email_check(cx, email).await, */
     }
 }
 
 #[cfg(feature = "ssr")]
-async fn username_check(username: String, pool: SqlitePool) -> Result<(), ServerFnError> {
+async fn username_check(cx: Scope, username: String) -> Result<(), ServerFnError> {
+    let pool = pool(cx)?;
     let user_exists =
         match sqlx::query!("SELECT username FROM users WHERE username = ?", username)
             .fetch_one(&pool)
@@ -273,10 +278,8 @@ async fn username_check(username: String, pool: SqlitePool) -> Result<(), Server
 }
 
 #[cfg(feature = "ssr")]
-async fn displayname_check(
-    displayname: String,
-    pool: SqlitePool,
-) -> Result<(), ServerFnError> {
+async fn displayname_check(cx: Scope, displayname: String) -> Result<(), ServerFnError> {
+    let pool = pool(cx)?;
     let display_exists = match sqlx::query!(
         "SELECT displayname FROM users WHERE displayname = ?",
         displayname
@@ -306,7 +309,8 @@ async fn displayname_check(
 }
 
 /*#[cfg(feature = "ssr")]
-async fn email_check(email: String, pool: SqlitePool) -> Result<(), ServerFnError> {
+async fn email_check(cx: Scope, email: String) -> Result<(), ServerFnError> {
+    let pool = pool(cx)?;
     let email_exists = match sqlx::query!("SELECT email FROM users WHERE email = ?", email)
         .fetch_one(&pool)
         .await

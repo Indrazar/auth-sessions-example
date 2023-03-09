@@ -2,7 +2,6 @@ use cfg_if::cfg_if;
 use leptos::*;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
-    use crate::database::pool;
     use crate::cookies::validate_session;
     use leptos_axum::redirect;
 }}
@@ -118,8 +117,7 @@ pub fn LoggedInRedirect(
 
 #[server(ProcessRedirect, "/api")]
 async fn process_redirect(cx: Scope) -> Result<bool, ServerFnError> {
-    let pool = pool(cx)?;
-    match validate_session(cx, &pool).await? {
+    match validate_session(cx).await? {
         None => Ok(false),
         Some(_) => Ok(true),
     }

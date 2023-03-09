@@ -1,7 +1,7 @@
 #[cfg(feature = "ssr")]
 use crate::cookies::validate_session;
 #[cfg(feature = "ssr")]
-use crate::database::{pool, user_display_name};
+use crate::database::user_display_name;
 use crate::pages::components::{
     logheader::{LogHeader, LogHeaderProps},
     logoutbutton::{LogoutButton, LogoutButtonProps},
@@ -45,11 +45,10 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
 
 #[server(GetHomePage, "/api")]
 pub async fn get_home_page(cx: Scope) -> Result<String, ServerFnError> {
-    let pool = pool(cx)?;
-    let session_valid = validate_session(cx, &pool).await?;
+    let session_valid = validate_session(cx).await?;
     match session_valid {
         Some(id) => {
-            let display_name = user_display_name(id, &pool).await?;
+            let display_name = user_display_name(cx, id).await?;
             Ok(format!("You are logged in {display_name}!"))
         }
         None => Ok(String::from("You are not logged in")),

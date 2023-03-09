@@ -9,7 +9,6 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use chrono::prelude::*;
     use leptos::*;
     use leptos_axum::RequestParts;
-    use sqlx::SqlitePool;
     use uuid::Uuid;
 }}
 
@@ -35,7 +34,6 @@ pub async fn issue_session_cookie(
     cx: Scope,
     user_id: Uuid,
     session_id: String,
-    pool: &SqlitePool,
 ) -> Result<(), ServerFnError> {
     let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
         Some(ro) => ro,
@@ -47,7 +45,7 @@ pub async fn issue_session_cookie(
     };
     let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
     let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
-    associate_session(user_id, &session_id, expire_time, pool).await?;
+    associate_session(cx, user_id, &session_id, expire_time).await?;
     response.append_header(
         SET_COOKIE,
         HeaderValue::from_str(&format!(
@@ -60,10 +58,7 @@ pub async fn issue_session_cookie(
 }
 
 #[cfg(feature = "ssr")]
-pub async fn validate_session(
-    cx: Scope,
-    pool: &SqlitePool,
-) -> Result<Option<Uuid>, ServerFnError> {
+pub async fn validate_session(cx: Scope) -> Result<Option<Uuid>, ServerFnError> {
     // extract request, bailing if there is none
     let http_req = match use_context::<RequestParts>(cx) {
         Some(rp) => rp,          // actual user request
@@ -71,7 +66,7 @@ pub async fn validate_session(
     };
     // grab request's session, bailing if there is none
     let unverified_session_id = parse_session_cookie(http_req);
-    validate_token(unverified_session_id, pool).await
+    validate_token(cx, unverified_session_id).await
     // do not renew cookies every time, force logins every 30 days
 }
 

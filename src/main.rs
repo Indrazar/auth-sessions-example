@@ -44,11 +44,10 @@ async fn main() {
     let leptos_options = conf.leptos_options;
     let addr_https = leptos_options.site_addr;
     let addr_http: SocketAddr = match leptos_options.env {
-        leptos_config::Env::PROD => {
-            String::from(env::var("LIVE_HTTP_REDIRECT").expect("LIVE_HTTP_REDIRECT not set"))
-                .parse()
-                .expect("verify LIVE_HTTP_REDIRECT value")
-        }
+        leptos_config::Env::PROD => env::var("LIVE_HTTP_REDIRECT")
+            .expect("LIVE_HTTP_REDIRECT not set")
+            .parse()
+            .expect("verify LIVE_HTTP_REDIRECT value"),
         // hard coded redirect
         leptos_config::Env::DEV => SocketAddr::from(([127, 0, 0, 1], 80)),
     };
@@ -165,7 +164,7 @@ async fn api_fn_handler(
         headers,
         move |cx| {
             provide_context(cx, pool.clone());
-            provide_context(cx, connect_info.clone())
+            provide_context(cx, connect_info)
         },
         request,
     )
