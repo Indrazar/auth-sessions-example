@@ -136,7 +136,9 @@ async fn leptos_routes_handler(
     Extension(options): Extension<Arc<LeptosOptions>>,
     req: Request<AxumBody>,
 ) -> Response {
-    let handler = leptos_axum::render_app_to_stream_with_context(
+    //TODO fix this later so it works without losing the ability to change SsrMode
+    //Right now it is FORCED to SsrMode::Async regardless of what the router says
+    let handler = leptos_axum::render_app_async_with_context(
         (*options).clone(),
         move |cx| {
             provide_context(cx, pool.clone());

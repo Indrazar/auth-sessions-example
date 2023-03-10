@@ -1,10 +1,12 @@
+#[cfg(feature = "ssr")]
+use crate::cookies::issue_session_cookie;
 use crate::pages::components::{
     csrf::{CSRFField, CSRFFieldProps},
     logheader::{LogHeader, LogHeaderProps},
     redirect::{LoggedInRedirect, LoggedInRedirectProps},
 };
 #[cfg(feature = "ssr")]
-use crate::security::validate_registration;
+use crate::security::{gen_128bit_base64, validate_registration};
 use leptos::*;
 #[cfg(feature = "ssr")]
 use leptos_axum::redirect;
@@ -37,7 +39,9 @@ pub fn SignupPage(cx: Scope) -> impl IntoView {
         <h2>"Sign Up"</h2>
         <p>
             <ActionForm action=sign_up>
-                <CSRFField/>
+                <p>
+                    <CSRFField/>
+                </p>
                 <p>
                     <label for="username">"Username:"</label>
                     <input type="text" name="username" required value/>
@@ -79,8 +83,8 @@ pub async fn sign_up(
     email_confirmation: String,
     password: String,
     password_confirmation: String,
-) -> Result<(), ServerFnError> {
-    validate_registration(
+) -> Result<String, ServerFnError> {
+    let user_id = match validate_registration(
         cx,
         csrf,
         username,
@@ -90,7 +94,15 @@ pub async fn sign_up(
         SecretString::from(password),
         SecretString::from(password_confirmation),
     )
-    .await?;
-    redirect(cx, "/login");
-    Ok(())
+    .await
+    {
+        Ok(id) => id,
+        Err(e) => {
+            return Ok(format!("{e}"));
+        }
+    };
+    let session_id = gen_128bit_base64();
+    issue_session_cookie(cx, user_id, session_id).await?;
+    redirect(cx, "/home");
+    Ok(String::from("Registration Successful"))
 }

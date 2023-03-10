@@ -55,8 +55,8 @@ fn set_headers(cx: Scope) {
         axum::http::header::CONTENT_SECURITY_POLICY,
         HeaderValue::from_static(
             // loading WASM requires 'unsafe-inline' 'unsafe-eval'
-            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; \
-             connect-src 'self' ws://127.0.0.1:3001/",
+            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; connect-src 'self' \
+             ws://127.0.0.1:3001/",
         ), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
     );
     #[cfg(not(debug_assertions))]

@@ -21,11 +21,11 @@ pub fn CSRFField(cx: Scope) -> impl IntoView {
     );
 
     view! { cx,
-        <Suspense fallback={move || view! {cx, <div>"Loading..."</div>}}>
+        <Suspense fallback={move || view! {cx, <>"Loading..."</>}}>
             {move || {
                 csrf_resource.read(cx).map(|n| match n {
-                    Err(_) => view! {cx, <div>"Page Load Failed. Please reload the page or try again later."</div>},
-                    Ok(csrf) => view! {cx, <div><input type="hidden" name="csrf" value=csrf/></div>},
+                    Err(_) => view! {cx, <>"Page Load Failed. Please reload the page or try again later."</>},
+                    Ok(csrf) => view! {cx, <><input type="hidden" name="csrf" value=csrf/></>},
                 })
             }}
         </Suspense>

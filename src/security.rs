@@ -1,4 +1,5 @@
 use cfg_if::cfg_if;
+use std::fmt;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::get_cookie_value;
@@ -26,7 +27,6 @@ pub fn generate_csrf(cx: Scope) -> String {
         Some(ro) => ro,
         None => return String::default(),
     };
-    //TODO use a CSPRNG here
     let csrf_string = gen_128bit_base64();
     response.append_header(
         SET_COOKIE,
@@ -76,6 +76,81 @@ pub fn validate_csrf(req: RequestParts, csrf_token: String) -> Result<(), CsrfEr
 }
 
 #[cfg(feature = "ssr")]
+#[derive(Debug)]
+pub enum RegistrationError {
+    ServerError(ServerFnError),
+    CSRFError(CsrfError),
+    HTTPRequestMissing,
+    EmailNotMatching,
+    InvalidEmail,
+    PasswordNotMatching,
+    UsernameLength,
+    DisplayNameLength,
+    PasswordLength,
+    DisplayNameInvalidCharacters,
+    UniqueUsername,
+    UniqueDisplayname,
+}
+
+#[cfg(feature = "ssr")]
+impl From<ServerFnError> for RegistrationError {
+    fn from(item: ServerFnError) -> Self {
+        RegistrationError::ServerError(item)
+    }
+}
+
+#[cfg(feature = "ssr")]
+impl From<CsrfError> for RegistrationError {
+    fn from(item: CsrfError) -> Self {
+        RegistrationError::CSRFError(item)
+    }
+}
+
+#[cfg(feature = "ssr")]
+impl fmt::Display for RegistrationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RegistrationError::ServerError(_) => {
+                write!(f, "Please try again in a few minutes after a page refresh.")
+            }
+            RegistrationError::CSRFError(_) => {
+                write!(f, "Please try again in a few minutes after a page refresh.")
+            }
+            RegistrationError::HTTPRequestMissing => {
+                write!(f, "Please try again in a few minutes after a page refresh.")
+            }
+            RegistrationError::EmailNotMatching => {
+                write!(f, "Provided emails do not match.")
+            }
+            RegistrationError::InvalidEmail => {
+                write!(f, "Provided email was invalid.")
+            }
+            RegistrationError::PasswordNotMatching => {
+                write!(f, "Provided passwords do not match.")
+            }
+            RegistrationError::PasswordLength => {
+                write!(f, "Provided password does not meet the length requirement.")
+            }
+            RegistrationError::UsernameLength => {
+                write!(f, "Provided username does not meet the length requirement.")
+            }
+            RegistrationError::DisplayNameLength => {
+                write!(f, "Provided username does not meet the length requirement.")
+            }
+            RegistrationError::DisplayNameInvalidCharacters => {
+                write!(f, "Provided displayname contains disallowed characters.")
+            }
+            RegistrationError::UniqueUsername => {
+                write!(f, "Provided username is already taken.")
+            }
+            RegistrationError::UniqueDisplayname => {
+                write!(f, "Provided displayname is already taken.")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "ssr")]
 pub async fn validate_registration(
     cx: Scope,
     csrf: String,
@@ -85,33 +160,31 @@ pub async fn validate_registration(
     email_confirmation: String,
     password: SecretString,
     password_confirmation: SecretString,
-) -> Result<(), ServerFnError> {
+) -> Result<Uuid, RegistrationError> {
     let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
         None => {
-            log::error!("signup: could not retrieve RequestParts");
-            return Err(ServerFnError::ServerError(String::from(
-                "Signup Request failed.",
-            )));
+            log::error!("validate_registration: could not retrieve RequestParts");
+            return Err(RegistrationError::HTTPRequestMissing);
         }
         Some(rp) => rp,
     };
     //validate token matches cookie
     validate_csrf(http_req, csrf).map_err(|e| match e {
         CsrfError::MultipleCookies => {
-            log::trace!("signup: multiple cookies present on client request");
-            ServerFnError::ServerError(String::from("Signup Request was invalid."))
+            log::trace!(
+                "validate_registration: multiple csrf cookies present on client request"
+            );
+            e
         }
         CsrfError::NoMatchingCookie => {
             log::trace!("signup: csrf did not match cookie");
-            ServerFnError::ServerError(String::from("Signup Request was invalid."))
+            e
         }
     })?;
     //validate email matches in both fields
     match email_confirmation.eq(&email) {
         false => {
-            return Err(ServerFnError::ServerError(String::from(
-                "Provided emails do not match. Signup Request was invalid.",
-            )));
+            return Err(RegistrationError::EmailNotMatching);
         }
         true => {}
     };
@@ -121,9 +194,7 @@ pub async fn validate_registration(
         .eq(password.expose_secret())
     {
         false => {
-            return Err(ServerFnError::ServerError(String::from(
-                "Provided passwords do not match. Signup Request was invalid.",
-            )));
+            return Err(RegistrationError::PasswordNotMatching);
         }
         true => {}
     };
@@ -131,41 +202,27 @@ pub async fn validate_registration(
     if password.expose_secret().len() < defs::PASSWORD_MIN_LEN - 1
         || password.expose_secret().len() > defs::PASSWORD_MAX_LEN
     {
-        return Err(ServerFnError::ServerError(String::from(
-            "Provided password does not meet the length requirement. Signup Request was \
-             invalid.",
-        )));
+        return Err(RegistrationError::PasswordLength);
     }
     //validate username is within length requirements
     if username.len() < defs::USERNAME_MIN_LEN - 1 || username.len() > defs::USERNAME_MAX_LEN {
-        return Err(ServerFnError::ServerError(String::from(
-            "Provided username does not meet the length requirement. Signup Request was \
-             invalid.",
-        )));
+        return Err(RegistrationError::UsernameLength);
     }
     //validate displayname is within length requirements
     if displayname.len() < defs::DISPLAYNAME_MIN_LEN - 1
         || displayname.len() > defs::DISPLAYNAME_MAX_LEN
     {
-        return Err(ServerFnError::ServerError(String::from(
-            "Provided username does not meet the length requirement. Signup Request was \
-             invalid.",
-        )));
+        return Err(RegistrationError::DisplayNameLength);
     }
     //validate displayname meets the character restrictions
     for c in displayname.chars() {
         if !defs::DISPLAYNAME_VALID_CHARACTERS.contains(c) {
-            return Err(ServerFnError::ServerError(String::from(
-                "Provided displayname contains disallowed characters. Signup Request was \
-                 invalid.",
-            )));
+            return Err(RegistrationError::DisplayNameInvalidCharacters);
         }
     }
     //validate email is correct format
     if EmailAddress::from_str(email.as_str()).is_err() {
-        return Err(ServerFnError::ServerError(String::from(
-            "Signup Request was invalid.",
-        )));
+        return Err(RegistrationError::InvalidEmail);
     }
     unique_cred_check(cx, UniqueCredential::Username(username.clone())).await?;
     unique_cred_check(cx, UniqueCredential::DisplayName(displayname.clone())).await?;
@@ -174,9 +231,9 @@ pub async fn validate_registration(
     log::trace!(
         "signup: successful registration for username: {username}, displayname: {displayname}"
     );
-    register_user(cx, username, displayname, email, password_hash).await?;
+    let id = register_user(cx, username, displayname, email, password_hash).await?;
     log::trace!("signup: db write succeeded for new user");
-    Ok(())
+    Ok(id)
 }
 
 #[cfg(feature = "ssr")]

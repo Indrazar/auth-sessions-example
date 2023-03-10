@@ -1,6 +1,7 @@
 use cfg_if::cfg_if;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
+    use crate::security::RegistrationError;
     use chrono::prelude::*;
     use leptos::*;
     use secrecy::SecretString;
@@ -246,7 +247,7 @@ pub enum UniqueCredential {
 pub async fn unique_cred_check(
     cx: Scope,
     input: UniqueCredential,
-) -> Result<(), ServerFnError> {
+) -> Result<(), RegistrationError> {
     // we won't require usernames =/= display names
     //
     // we will require both usernames and display names both do not already exist
@@ -266,7 +267,7 @@ pub async fn unique_cred_check(
 }
 
 #[cfg(feature = "ssr")]
-async fn username_check(cx: Scope, username: String) -> Result<(), ServerFnError> {
+async fn username_check(cx: Scope, username: String) -> Result<(), RegistrationError> {
     let pool = pool(cx)?;
     let user_exists =
         match sqlx::query!("SELECT username FROM users WHERE username = ?", username)
@@ -279,24 +280,22 @@ async fn username_check(cx: Scope, username: String) -> Result<(), ServerFnError
                 sqlx::Error::RowNotFound => false,
                 _ => {
                     log::error!("possible database error: {e}");
-                    return Err(ServerFnError::ServerError(String::from(
-                        "Signup Request failed.",
+                    return Err(RegistrationError::ServerError(ServerFnError::ServerError(
+                        String::from("Signup Request failed."),
                     )));
                 }
             },
         };
     if user_exists {
         //TODO prevent user enumeration
-        Err(ServerFnError::ServerError(String::from(
-            "Username already in use. Signup Request failed.",
-        )))
+        Err(RegistrationError::UniqueUsername)
     } else {
         Ok(())
     }
 }
 
 #[cfg(feature = "ssr")]
-async fn displayname_check(cx: Scope, displayname: String) -> Result<(), ServerFnError> {
+async fn displayname_check(cx: Scope, displayname: String) -> Result<(), RegistrationError> {
     let pool = pool(cx)?;
     let display_exists = match sqlx::query!(
         "SELECT displayname FROM users WHERE displayname = ?",
@@ -311,16 +310,14 @@ async fn displayname_check(cx: Scope, displayname: String) -> Result<(), ServerF
             sqlx::Error::RowNotFound => false,
             _ => {
                 log::error!("possible database error: {e}");
-                return Err(ServerFnError::ServerError(String::from(
-                    "Signup Request failed.",
+                return Err(RegistrationError::ServerError(ServerFnError::ServerError(
+                    String::from("Signup Request failed."),
                 )));
             }
         },
     };
     if display_exists {
-        Err(ServerFnError::ServerError(String::from(
-            "Displayname already in use. Signup Request failed.",
-        )))
+        Err(RegistrationError::UniqueDisplayname)
     } else {
         Ok(())
     }
