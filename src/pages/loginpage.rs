@@ -1,7 +1,5 @@
 use crate::pages::components::{
-    csrf::{CSRFField, CSRFFieldProps},
-    logheader::{LogHeader, LogHeaderProps},
-    redirect::{LoggedInRedirect, LoggedInRedirectProps},
+    csrf::CSRFField, logheader::LogHeader, redirect::LoggedInRedirect,
 };
 use cfg_if::cfg_if;
 use leptos::*;
@@ -13,10 +11,6 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use secrecy::SecretString;
     use leptos_axum::redirect;
 
-    pub fn register_server_functions() -> Result<(), ServerFnError> {
-        Login::register()?;
-        Ok(())
-    }
 }}
 
 /// Renders the non-logged in landing page.

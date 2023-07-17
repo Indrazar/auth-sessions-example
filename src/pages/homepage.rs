@@ -3,17 +3,9 @@ use crate::cookies::validate_session;
 #[cfg(feature = "ssr")]
 use crate::database::user_display_name;
 use crate::pages::components::{
-    logheader::{LogHeader, LogHeaderProps},
-    logoutbutton::{LogoutButton, LogoutButtonProps},
-    redirect::{LoggedInRedirect, LoggedInRedirectProps},
+    logheader::LogHeader, logoutbutton::LogoutButton, redirect::LoggedInRedirect,
 };
 use leptos::*;
-
-#[cfg(feature = "ssr")]
-pub fn register_server_functions() -> Result<(), ServerFnError> {
-    GetHomePage::register()?;
-    Ok(())
-}
 
 #[component]
 pub fn HomePage(cx: Scope) -> impl IntoView {
@@ -37,7 +29,11 @@ pub fn HomePage(cx: Scope) -> impl IntoView {
         />
         <h1>"Auth-Sessions-Example"</h1>
         <h2>"Logged In Homepage"</h2>
-        <p>"Hello! "{page_data}</p>
+        <Transition
+            fallback=move || view! {cx, <p>"Loading..."</p>}
+        >
+        { move || view! {cx, <p>"Hello! "{page_data}</p>} }
+        </Transition>
         <LogHeader/>
         <p><LogoutButton/></p>
     }

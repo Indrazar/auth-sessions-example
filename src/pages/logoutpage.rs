@@ -1,13 +1,9 @@
-use crate::pages::components::logheader::{LogHeader, LogHeaderProps};
+use crate::pages::components::logheader::LogHeader;
 use cfg_if::cfg_if;
 use leptos::*;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::destroy_session;
-    pub fn register_server_functions() -> Result<(), ServerFnError> {
-        DestroySession::register()?;
-        Ok(())
-    }
 }}
 
 #[component]

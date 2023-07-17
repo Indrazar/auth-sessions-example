@@ -1,7 +1,4 @@
-use crate::pages::components::{
-    logheader::{LogHeader, LogHeaderProps},
-    redirect::{LoggedInRedirect, LoggedInRedirectProps},
-};
+use crate::pages::components::{logheader::LogHeader, redirect::LoggedInRedirect};
 use leptos::*;
 
 /// Renders the non-logged in landing page. Redirects if logged in.

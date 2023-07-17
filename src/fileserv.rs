@@ -12,7 +12,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use tower_http::services::ServeDir;
     use std::sync::Arc;
     use leptos::*;
-    use crate::pages::error_template::{ErrorTemplate, ErrorTemplateProps};
+    use crate::pages::error_template::ErrorTemplate;
     use crate::pages::error_template::AppError;
 }}
 

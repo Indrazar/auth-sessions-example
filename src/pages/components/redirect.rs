@@ -3,7 +3,6 @@ use leptos::*;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::validate_session;
-    use leptos_axum::redirect;
 }}
 
 cfg_if! { if #[cfg(not(feature = "ssr"))] {
@@ -38,7 +37,7 @@ pub fn LoggedInRedirect(
                         log::trace!("session was valid, redirecting to {route}");
 
                         #[cfg(feature = "ssr")]
-                        redirect(cx, route.as_str());
+                        leptos_axum::redirect(cx, route.as_str());
 
                         #[cfg(not(feature = "ssr"))]
                         match leptos_router::use_navigate(cx)(
@@ -62,7 +61,7 @@ pub fn LoggedInRedirect(
                         log::trace!("session was invalid, redirecting to {route}");
 
                         #[cfg(feature = "ssr")]
-                        redirect(cx, route.as_str());
+                        leptos_axum::redirect(cx, route.as_str());
 
                         #[cfg(not(feature = "ssr"))]
                         match leptos_router::use_navigate(cx)(
@@ -86,7 +85,7 @@ pub fn LoggedInRedirect(
                         log::trace!("{e}, redirecting to fail_route: {route}");
 
                         #[cfg(feature = "ssr")]
-                        redirect(cx, route.as_str());
+                        leptos_axum::redirect(cx, route.as_str());
 
                         #[cfg(not(feature = "ssr"))]
                         match leptos_router::use_navigate(cx)(
@@ -109,7 +108,7 @@ pub fn LoggedInRedirect(
     };
 
     view! {cx,
-        <Suspense fallback={|| view!{cx, <></>}}>
+        <Suspense fallback={move || view!{cx, <>"Loading..."</>}}>
         <>{redirect_result()}</>
         </Suspense>
     } // redirect is non-visible

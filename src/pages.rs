@@ -17,16 +17,6 @@ use homepage::*;
 pub mod error_template;
 
 #[cfg(feature = "ssr")]
-pub fn register_server_functions() -> Result<(), ServerFnError> {
-    signuppage::register_server_functions()?;
-    homepage::register_server_functions()?;
-    loginpage::register_server_functions()?;
-    logoutpage::register_server_functions()?;
-    components::register_server_functions()?;
-    Ok(())
-}
-
-#[cfg(feature = "ssr")]
 fn set_headers(cx: Scope) {
     use axum::http::{header::CONTENT_TYPE, HeaderValue};
     let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
@@ -55,8 +45,7 @@ fn set_headers(cx: Scope) {
         axum::http::header::CONTENT_SECURITY_POLICY,
         HeaderValue::from_static(
             // loading WASM requires 'unsafe-inline' 'unsafe-eval'
-            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; connect-src 'self' \
-             ws://127.0.0.1:3001/",
+            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; connect-src 'self' ws://127.0.0.1:3001/",
         ), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
     );
     #[cfg(not(debug_assertions))]

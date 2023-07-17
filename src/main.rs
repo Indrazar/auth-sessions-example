@@ -8,7 +8,7 @@ struct Ports {
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     use auth_sessions_example::{
         fileserv::file_and_error_handler,
-        pages::{register_server_functions, App, AppProps},
+        pages::App,
     };
     use axum::{
         extract::{Extension, Host, Path, ConnectInfo},
@@ -108,16 +108,16 @@ async fn main() {
     log::debug!("\n\n\nServer process starting");
     log::debug!("Server {:#?}", leptos_options);
     log::debug!("Server registering functions");
-    register_server_functions().expect("Could not register_server_functions: ");
 
     // build our application with a route
     let app = Router::new()
         .route("/api/*fn_name", post(api_fn_handler))
         .leptos_routes_with_handler(routes, get(leptos_routes_handler))
         .fallback(file_and_error_handler)
-        .layer(Extension(Arc::new(leptos_options)))
+        .layer(Extension(Arc::new(leptos_options.clone())))
         .layer(Extension(pool_options))
-        .layer(CompressionLayer::new());
+        .layer(CompressionLayer::new())
+        .with_state(leptos_options);
 
     // spawn a redirect http to https
     tokio::spawn(redirect_http_to_https(ports));
@@ -136,15 +136,22 @@ async fn leptos_routes_handler(
     Extension(options): Extension<Arc<LeptosOptions>>,
     req: Request<AxumBody>,
 ) -> Response {
-    //TODO fix this later so it works without losing the ability to change SsrMode
-    //Right now it is FORCED to SsrMode::Async regardless of what the router says
-    let handler = leptos_axum::render_app_async_with_context(
+    let handler = leptos_axum::render_app_to_stream_with_context(
         (*options).clone(),
         move |cx| {
             provide_context(cx, pool.clone());
         },
-        |cx| view! { cx, <App/> },
+        |cx| view! {cx, <App/> },
     );
+    ////this is the old method: it works by preventing the ability to change SsrMode
+    ////it is FORCED to SsrMode::Async regardless of what the router says
+    //let handler = leptos_axum::render_app_async_with_context(
+    //    (*options).clone(),
+    //    move |cx| {
+    //        provide_context(cx, pool.clone());
+    //    },
+    //    |cx| view! { cx, <App/> },
+    //);
     handler(req).await.into_response()
 }
 
@@ -154,6 +161,7 @@ async fn api_fn_handler(
     Extension(connect_info): Extension<ConnectInfo<SocketAddr>>,
     path: Path<String>,
     headers: HeaderMap,
+    query: axum::extract::RawQuery,
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
     log::trace!(
@@ -164,6 +172,7 @@ async fn api_fn_handler(
     handle_server_fns_with_context(
         path,
         headers,
+        query,
         move |cx| {
             provide_context(cx, pool.clone());
             provide_context(cx, connect_info)

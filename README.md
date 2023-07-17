@@ -7,7 +7,7 @@ The bots will arrive and they will sell you uggs.
 
 # Leptos Auth-Sessions-Example
 
-This project is made with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum) but without using [axum-sessions](https://github.com/maxcountryman/axum-sessions).
+This project is made with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/leptos-rs/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum) but without using [axum-sessions](https://github.com/maxcountryman/axum-sessions).
 
 ### Sidenote:
 This project is not using  `axum-sessions` due to the way its dependency `async-session` incorrectly implements clone in one of the core interfaces. This [issue is tracked here](https://github.com/http-rs/async-session/pull/57).

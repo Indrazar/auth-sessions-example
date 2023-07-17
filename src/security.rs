@@ -1,5 +1,4 @@
 use cfg_if::cfg_if;
-use std::fmt;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::get_cookie_value;
@@ -17,7 +16,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use leptos::*;
     use leptos_axum::RequestParts;
     use secrecy::{ExposeSecret, SecretString};
-    use std::str::FromStr;
+    use std::{fmt, str::FromStr};
     use uuid::Uuid;
 }}
 
