@@ -88,7 +88,7 @@ pub enum RegistrationError {
     PasswordLength,
     DisplayNameInvalidCharacters,
     UniqueUsername,
-    UniqueDisplayname,
+    UniqueDisplayName,
 }
 
 #[cfg(feature = "ssr")]
@@ -137,13 +137,13 @@ impl fmt::Display for RegistrationError {
                 write!(f, "Provided username does not meet the length requirement.")
             }
             RegistrationError::DisplayNameInvalidCharacters => {
-                write!(f, "Provided displayname contains disallowed characters.")
+                write!(f, "Provided display name contains disallowed characters.")
             }
             RegistrationError::UniqueUsername => {
                 write!(f, "Provided username is already taken.")
             }
-            RegistrationError::UniqueDisplayname => {
-                write!(f, "Provided displayname is already taken.")
+            RegistrationError::UniqueDisplayName => {
+                write!(f, "Provided display name is already taken.")
             }
         }
     }
@@ -154,7 +154,7 @@ pub async fn validate_registration(
     cx: Scope,
     csrf: String,
     username: String,
-    displayname: String,
+    display_name: String,
     email: String,
     email_confirmation: String,
     password: SecretString,
@@ -207,15 +207,15 @@ pub async fn validate_registration(
     if username.len() < defs::USERNAME_MIN_LEN - 1 || username.len() > defs::USERNAME_MAX_LEN {
         return Err(RegistrationError::UsernameLength);
     }
-    //validate displayname is within length requirements
-    if displayname.len() < defs::DISPLAYNAME_MIN_LEN - 1
-        || displayname.len() > defs::DISPLAYNAME_MAX_LEN
+    //validate display_name is within length requirements
+    if display_name.len() < defs::DISPLAY_NAME_MIN_LEN - 1
+        || display_name.len() > defs::DISPLAY_NAME_MAX_LEN
     {
         return Err(RegistrationError::DisplayNameLength);
     }
-    //validate displayname meets the character restrictions
-    for c in displayname.chars() {
-        if !defs::DISPLAYNAME_VALID_CHARACTERS.contains(c) {
+    //validate display_name meets the character restrictions
+    for c in display_name.chars() {
+        if !defs::DISPLAY_NAME_VALID_CHARACTERS.contains(c) {
             return Err(RegistrationError::DisplayNameInvalidCharacters);
         }
     }
@@ -224,13 +224,13 @@ pub async fn validate_registration(
         return Err(RegistrationError::InvalidEmail);
     }
     unique_cred_check(cx, UniqueCredential::Username(username.clone())).await?;
-    unique_cred_check(cx, UniqueCredential::DisplayName(displayname.clone())).await?;
+    unique_cred_check(cx, UniqueCredential::DisplayName(display_name.clone())).await?;
     //unique_cred_check(UniqueCredential::Email(email)).await?;
     let password_hash = gen_hash(password)?;
     log::trace!(
-        "signup: successful registration for username: {username}, displayname: {displayname}"
+        "signup: successful registration for username: {username}, display_name: {display_name}"
     );
-    let id = register_user(cx, username, displayname, email, password_hash).await?;
+    let id = register_user(cx, username, display_name, email, password_hash).await?;
     log::trace!("signup: db write succeeded for new user");
     Ok(id)
 }

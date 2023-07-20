@@ -1,52 +1,47 @@
-#[cfg(feature = "ssr")]
-use crate::cookies::validate_session;
-#[cfg(feature = "ssr")]
-use crate::database::user_display_name;
-use crate::pages::components::{
-    logheader::LogHeader, logoutbutton::LogoutButton, redirect::LoggedInRedirect,
-};
 use leptos::*;
 
+use crate::pages::{get_userdata, Login, Logout, Signup};
+
 #[component]
-pub fn HomePage(cx: Scope) -> impl IntoView {
-    let page_data_action = create_server_action::<GetHomePage>(cx);
-    let page_data_resource = create_resource(
+pub fn HomePage(
+    cx: Scope,
+    action1: Action<Login, Result<(), ServerFnError>>,
+    action2: Action<Signup, Result<String, ServerFnError>>,
+    action3: Action<Logout, Result<(), ServerFnError>>,
+) -> impl IntoView {
+    let user_resource = create_resource(
         cx,
-        move || (page_data_action.version().get()),
-        move |_| get_home_page(cx),
+        move || {
+            (
+                action1.version().get(),
+                action2.version().get(),
+                action3.version().get(),
+            )
+        },
+        move |_| get_userdata(cx),
     );
-    let page_data = move || {
-        page_data_resource
-            .read(cx)
-            .map(|val| val.unwrap_or(String::default()))
-            .unwrap_or(String::default())
-    };
 
     view! { cx,
-        <LoggedInRedirect
-            success_route=None
-            fail_route=Some("/landing".to_string())
-        />
-        <h1>"Auth-Sessions-Example"</h1>
-        <h2>"Logged In Homepage"</h2>
         <Transition
             fallback=move || view! {cx, <p>"Loading..."</p>}
         >
-        { move || view! {cx, <p>"Hello! "{page_data}</p>} }
+        {move || {
+            user_resource.read(cx).map(|data| match data {
+                Err(e) => view! {cx,
+                    <p>"There was an error loading the page."</p>
+                    <span>{format!("error: {}", e)}</span>
+                }.into_view(cx),
+                Ok(None) => view! {cx,
+                    <></>
+                }.into_view(cx),
+                Ok(Some(userdata)) => view! {cx,
+                    <div class="main-text">
+                        <p>"Hello! This is your home page " {userdata.display_name.clone()} </p>
+                        <p>"More information could be put here if we wanted. So far all we have is: " {format!("{:?}", userdata.clone())}</p>
+                    </div>
+                }.into_view(cx),
+            })
+        }}
         </Transition>
-        <LogHeader/>
-        <p><LogoutButton/></p>
-    }
-}
-
-#[server(GetHomePage, "/api")]
-pub async fn get_home_page(cx: Scope) -> Result<String, ServerFnError> {
-    let session_valid = validate_session(cx).await?;
-    match session_valid {
-        Some(id) => {
-            let display_name = user_display_name(cx, id).await?;
-            Ok(format!("You are logged in {display_name}!"))
-        }
-        None => Ok(String::from("You are not logged in")),
     }
 }

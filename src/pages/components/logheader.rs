@@ -1,5 +1,6 @@
 use leptos::*;
-use leptos_router::*;
+#[cfg(debug_assertions)]
+use leptos_router::ActionForm;
 
 /// Renders a button that sends a post request to /api
 /// On the server side this will print out all the headers provided by the client

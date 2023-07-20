@@ -5,15 +5,22 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use chrono::prelude::*;
     use leptos::*;
     use secrecy::SecretString;
-    use serde::{Deserialize, Serialize};
     use sqlx::SqlitePool;
     use uuid::Uuid;
 }}
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UserData {
+    pub display_name: String,
+    pub button_presses: i64,
+}
 
 #[cfg(feature = "ssr")]
 #[derive(Clone, Debug, PartialEq, Eq, sqlx::FromRow)]
-struct RetrieveDisplayname {
-    displayname: String,
+struct UserDataForPage {
+    display_name: String,
+    button_presses: i64,
 }
 
 #[cfg(feature = "ssr")]
@@ -24,17 +31,17 @@ pub fn pool(cx: Scope) -> Result<SqlitePool, ServerFnError> {
 }
 
 #[cfg(feature = "ssr")]
-pub async fn user_display_name(cx: Scope, id: Uuid) -> Result<String, ServerFnError> {
+pub async fn userdata(cx: Scope, id: Uuid) -> Result<UserData, ServerFnError> {
     let pool = pool(cx)?;
     let row = sqlx::query_as!(
-        RetrieveDisplayname,
-        r#"SELECT displayname FROM users WHERE user_id = ?"#,
+        UserDataForPage,
+        r#"SELECT display_name, button_presses FROM users WHERE user_id = ?"#,
         id
     )
     .fetch_one(&pool)
     .await;
-    let displayname: String = match row {
-        Ok(res) => res.displayname,
+    let (display_name, button_presses): (String, i64) = match row {
+        Ok(res) => (res.display_name, res.button_presses),
         Err(e) => match e {
             sqlx::Error::RowNotFound => {
                 return Err(ServerFnError::ServerError(String::from(
@@ -49,40 +56,49 @@ pub async fn user_display_name(cx: Scope, id: Uuid) -> Result<String, ServerFnEr
             }
         },
     };
-    Ok(displayname)
+    Ok(UserData {
+        display_name: display_name,
+        button_presses: button_presses,
+    })
 }
 
 #[cfg(feature = "ssr")]
 pub async fn register_user(
     cx: Scope,
     username: String,
-    displayname: String,
+    display_name: String,
     email: String,
     password_hash: String,
 ) -> Result<Uuid, ServerFnError> {
     let pool = pool(cx)?;
     let id = Uuid::now_v7();
     let query_res = sqlx::query!(
-        "INSERT INTO users (user_id, username, displayname, email, verified, password_hash) \
-         VALUES (?, ?, ?, ?, ?, ?)",
+        "INSERT INTO users (user_id, username, display_name, email, verified, password_hash, button_presses) \
+         VALUES (?, ?, ?, ?, ?, ?, ?)",
         id,
         username,
-        displayname,
+        display_name,
         email,
         false,
         password_hash,
+        0,
     )
     .execute(&pool)
     .await;
     match query_res {
         Ok(val) => {
             if val.rows_affected() != 1 {
+                log::error!(
+                    "database error when registering user, rows !=1, val: {:#?}",
+                    val
+                );
                 return Err(ServerFnError::ServerError(String::from(
                     "Signup Request failed.",
                 )));
             }
         }
-        Err(_) => {
+        Err(e) => {
+            log::error!("database error when registering user: {e}");
             return Err(ServerFnError::ServerError(String::from(
                 "Signup Request failed.",
             )));
@@ -261,8 +277,9 @@ pub async fn unique_cred_check(
     // and display names are not used for sign in, only for displaying to other users
     match input {
         UniqueCredential::Username(username) => username_check(cx, username).await,
-        UniqueCredential::DisplayName(displayname) => displayname_check(cx, displayname).await,
-        /* UniqueCredential::Email(email) => email_check(cx, email).await, */
+        UniqueCredential::DisplayName(display_name) => {
+            display_name_check(cx, display_name).await
+        } /* UniqueCredential::Email(email) => email_check(cx, email).await, */
     }
 }
 
@@ -295,16 +312,16 @@ async fn username_check(cx: Scope, username: String) -> Result<(), RegistrationE
 }
 
 #[cfg(feature = "ssr")]
-async fn displayname_check(cx: Scope, displayname: String) -> Result<(), RegistrationError> {
+async fn display_name_check(cx: Scope, display_name: String) -> Result<(), RegistrationError> {
     let pool = pool(cx)?;
     let display_exists = match sqlx::query!(
-        "SELECT displayname FROM users WHERE displayname = ?",
-        displayname
+        "SELECT display_name FROM users WHERE display_name = ?",
+        display_name
     )
     .fetch_one(&pool)
     .await
     {
-        Ok(_) => true, //displayname.eq(&row.displayname)
+        Ok(_) => true, //display_name.eq(&row.display_name)
         Err(e) => match e {
             // row not found is returned as error, but it is not actually an error
             sqlx::Error::RowNotFound => false,
@@ -317,7 +334,7 @@ async fn displayname_check(cx: Scope, displayname: String) -> Result<(), Registr
         },
     };
     if display_exists {
-        Err(RegistrationError::UniqueDisplayname)
+        Err(RegistrationError::UniqueDisplayName)
     } else {
         Ok(())
     }
