@@ -1,8 +1,8 @@
 use leptos::*;
 
 #[component]
-pub fn LogoutButton(cx: Scope) -> impl IntoView {
-    view! { cx,
+pub fn LogoutButton() -> impl IntoView {
+    view! {
         <a href="/logout">
             <input class="logout-button" type="submit" value="Logout"/>
         </a>

@@ -24,15 +24,15 @@ struct UserDataForPage {
 }
 
 #[cfg(feature = "ssr")]
-pub fn pool(cx: Scope) -> Result<SqlitePool, ServerFnError> {
-    use_context::<SqlitePool>(cx)
+pub fn pool() -> Result<SqlitePool, ServerFnError> {
+    use_context::<SqlitePool>()
         .ok_or("Pool missing.")
         .map_err(|e| ServerFnError::ServerError(e.to_string()))
 }
 
 #[cfg(feature = "ssr")]
-pub async fn userdata(cx: Scope, id: Uuid) -> Result<UserData, ServerFnError> {
-    let pool = pool(cx)?;
+pub async fn userdata(id: Uuid) -> Result<UserData, ServerFnError> {
+    let pool = pool()?;
     let row = sqlx::query_as!(
         UserDataForPage,
         r#"SELECT display_name, button_presses FROM users WHERE user_id = ?"#,
@@ -64,13 +64,12 @@ pub async fn userdata(cx: Scope, id: Uuid) -> Result<UserData, ServerFnError> {
 
 #[cfg(feature = "ssr")]
 pub async fn register_user(
-    cx: Scope,
     username: String,
     display_name: String,
     email: String,
     password_hash: String,
 ) -> Result<Uuid, ServerFnError> {
-    let pool = pool(cx)?;
+    let pool = pool()?;
     let id = Uuid::now_v7();
     let query_res = sqlx::query!(
         "INSERT INTO users (user_id, username, display_name, email, verified, password_hash, button_presses) \
@@ -109,12 +108,11 @@ pub async fn register_user(
 
 #[cfg(feature = "ssr")]
 pub async fn associate_session(
-    cx: Scope,
     user_id: Uuid,
     session_id: &String,
     expire_time: DateTime<Utc>,
 ) -> Result<(), ServerFnError> {
-    let pool = pool(cx)?;
+    let pool = pool()?;
     let query_res = sqlx::query!(
         "INSERT INTO active_sesssions (session_id, user_id, expiry) VALUES (?, ?, ?)",
         session_id,
@@ -141,8 +139,8 @@ pub async fn associate_session(
 }
 
 #[cfg(feature = "ssr")]
-pub async fn drop_session(cx: Scope, session_id: &String) {
-    let pool = match pool(cx) {
+pub async fn drop_session(session_id: &String) {
+    let pool = match pool() {
         Ok(pool) => pool,
         Err(e) => {
             log::error!("could not retrieve pool in drop_session: {e}");
@@ -183,10 +181,9 @@ struct ValidateSession {
 
 #[cfg(feature = "ssr")]
 pub async fn validate_token(
-    cx: Scope,
     untrusted_session: String,
 ) -> Result<Option<uuid::Uuid>, ServerFnError> {
-    let pool = pool(cx)?;
+    let pool = pool()?;
     let row = sqlx::query_as!(
         ValidateSession,
         r#"SELECT user_id AS "user_id: Uuid", expiry AS "expiry: DateTime<Utc>" FROM active_sesssions WHERE session_id = ?"#,
@@ -210,7 +207,7 @@ pub async fn validate_token(
     };
     //validate NOT expired
     if expiry < Utc::now() {
-        drop_session(cx, &untrusted_session).await;
+        drop_session(&untrusted_session).await;
         Ok(None)
     } else {
         Ok(Some(true_uuid))
@@ -226,10 +223,9 @@ struct ValidateCredential {
 
 #[cfg(feature = "ssr")]
 pub async fn retrieve_credentials(
-    cx: Scope,
     username: &String,
 ) -> Result<Option<(Uuid, SecretString)>, ServerFnError> {
-    let pool = pool(cx)?;
+    let pool = pool()?;
     let row = sqlx::query_as!(
         ValidateCredential,
         r#"SELECT user_id AS "user_id: Uuid", password_hash FROM users WHERE username = ?"#,
@@ -260,10 +256,7 @@ pub enum UniqueCredential {
 }
 
 #[cfg(feature = "ssr")]
-pub async fn unique_cred_check(
-    cx: Scope,
-    input: UniqueCredential,
-) -> Result<(), RegistrationError> {
+pub async fn unique_cred_check(input: UniqueCredential) -> Result<(), RegistrationError> {
     // we won't require usernames =/= display names
     //
     // we will require both usernames and display names both do not already exist
@@ -276,16 +269,15 @@ pub async fn unique_cred_check(
     // display name enumeration should be fine since you can see those while signed in
     // and display names are not used for sign in, only for displaying to other users
     match input {
-        UniqueCredential::Username(username) => username_check(cx, username).await,
-        UniqueCredential::DisplayName(display_name) => {
-            display_name_check(cx, display_name).await
-        } /* UniqueCredential::Email(email) => email_check(cx, email).await, */
+        UniqueCredential::Username(username) => username_check(username).await,
+        UniqueCredential::DisplayName(display_name) => display_name_check(display_name).await,
+        /* UniqueCredential::Email(email) => email_check(email).await, */
     }
 }
 
 #[cfg(feature = "ssr")]
-async fn username_check(cx: Scope, username: String) -> Result<(), RegistrationError> {
-    let pool = pool(cx)?;
+async fn username_check(username: String) -> Result<(), RegistrationError> {
+    let pool = pool()?;
     let user_exists =
         match sqlx::query!("SELECT username FROM users WHERE username = ?", username)
             .fetch_one(&pool)
@@ -312,8 +304,8 @@ async fn username_check(cx: Scope, username: String) -> Result<(), RegistrationE
 }
 
 #[cfg(feature = "ssr")]
-async fn display_name_check(cx: Scope, display_name: String) -> Result<(), RegistrationError> {
-    let pool = pool(cx)?;
+async fn display_name_check(display_name: String) -> Result<(), RegistrationError> {
+    let pool = pool()?;
     let display_exists = match sqlx::query!(
         "SELECT display_name FROM users WHERE display_name = ?",
         display_name
@@ -341,8 +333,8 @@ async fn display_name_check(cx: Scope, display_name: String) -> Result<(), Regis
 }
 
 /*#[cfg(feature = "ssr")]
-async fn email_check(cx: Scope, email: String) -> Result<(), ServerFnError> {
-    let pool = pool(cx)?;
+async fn email_check(email: String) -> Result<(), ServerFnError> {
+    let pool = pool()?;
     let email_exists = match sqlx::query!("SELECT email FROM users WHERE email = ?", email)
         .fetch_one(&pool)
         .await

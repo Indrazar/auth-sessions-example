@@ -21,8 +21,8 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 }}
 
 #[cfg(feature = "ssr")]
-pub fn generate_csrf(cx: Scope) -> String {
-    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
+pub fn generate_csrf() -> String {
+    let response = match use_context::<leptos_axum::ResponseOptions>() {
         Some(ro) => ro,
         None => return String::default(),
     };
@@ -151,7 +151,6 @@ impl fmt::Display for RegistrationError {
 
 #[cfg(feature = "ssr")]
 pub async fn validate_registration(
-    cx: Scope,
     csrf: String,
     username: String,
     display_name: String,
@@ -160,7 +159,7 @@ pub async fn validate_registration(
     password: SecretString,
     password_confirmation: SecretString,
 ) -> Result<Uuid, RegistrationError> {
-    let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
+    let http_req = match use_context::<leptos_axum::RequestParts>() {
         None => {
             log::error!("validate_registration: could not retrieve RequestParts");
             return Err(RegistrationError::HTTPRequestMissing);
@@ -223,26 +222,25 @@ pub async fn validate_registration(
     if EmailAddress::from_str(email.as_str()).is_err() {
         return Err(RegistrationError::InvalidEmail);
     }
-    unique_cred_check(cx, UniqueCredential::Username(username.clone())).await?;
-    unique_cred_check(cx, UniqueCredential::DisplayName(display_name.clone())).await?;
+    unique_cred_check(UniqueCredential::Username(username.clone())).await?;
+    unique_cred_check(UniqueCredential::DisplayName(display_name.clone())).await?;
     //unique_cred_check(UniqueCredential::Email(email)).await?;
     let password_hash = gen_hash(password)?;
     log::trace!(
         "signup: successful registration for username: {username}, display_name: {display_name}"
     );
-    let id = register_user(cx, username, display_name, email, password_hash).await?;
+    let id = register_user(username, display_name, email, password_hash).await?;
     log::trace!("signup: db write succeeded for new user");
     Ok(id)
 }
 
 #[cfg(feature = "ssr")]
 pub async fn validate_login(
-    cx: Scope,
     csrf: String,
     username: String,
     password: SecretString,
 ) -> Result<Uuid, ServerFnError> {
-    let http_req = match use_context::<leptos_axum::RequestParts>(cx) {
+    let http_req = match use_context::<leptos_axum::RequestParts>() {
         None => {
             log::error!("login: could not retrieve RequestParts");
             return Err(ServerFnError::ServerError(String::from(
@@ -278,7 +276,7 @@ pub async fn validate_login(
              invalid.",
         )));
     }
-    let id = validate_credentials(cx, username.clone(), password).await?;
+    let id = validate_credentials(username.clone(), password).await?;
     log::trace!("login: successful login for user: {username}");
     Ok(id)
 }
@@ -309,12 +307,11 @@ enum ValidateHashError {
 
 #[cfg(feature = "ssr")]
 pub async fn validate_credentials(
-    cx: Scope,
     username: String,
     untrusted_password: SecretString,
 ) -> Result<uuid::Uuid, ServerFnError> {
     let (true_uuid, stored_phc): (Uuid, SecretString) =
-        match retrieve_credentials(cx, &username).await {
+        match retrieve_credentials(&username).await {
             Ok(Some(x)) => x,
             Ok(None) => {
                 //execute some time wasting to prevent username enumeration

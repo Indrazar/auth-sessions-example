@@ -20,9 +20,9 @@ use crate::database::UserData;
 pub mod error_template;
 
 #[cfg(feature = "ssr")]
-fn set_headers(cx: Scope) {
+fn set_headers() {
     use axum::http::{header::CONTENT_TYPE, HeaderValue};
-    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
+    let response = match use_context::<leptos_axum::ResponseOptions>() {
         Some(ro) => ro,
         None => return,
     };
@@ -66,13 +66,12 @@ fn set_headers(cx: Scope) {
 }
 
 #[component]
-pub fn App(cx: Scope) -> impl IntoView {
-    let login = create_server_action::<Login>(cx);
-    let logout = create_server_action::<Logout>(cx);
-    let signup = create_server_action::<Signup>(cx);
+pub fn App() -> impl IntoView {
+    let login = create_server_action::<Login>();
+    let logout = create_server_action::<Logout>();
+    let signup = create_server_action::<Signup>();
 
     let userdata = create_resource(
-        cx,
         move || {
             (
                 login.version().get(),
@@ -80,19 +79,18 @@ pub fn App(cx: Scope) -> impl IntoView {
                 logout.version().get(),
             )
         },
-        move |_| get_userdata(cx),
+        move |_| get_userdata(),
     );
     // Provides context that manages stylesheets, titles, meta tags, etc.
-    provide_meta_context(cx);
+    provide_meta_context();
     //let nonce = "";
 
     cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
         // Set correct header for `Content-Type: text/html; charset=UTF-8`, etc.
-        set_headers(cx);
+        set_headers();
     }}
 
     view! {
-        cx,
         <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
@@ -109,24 +107,24 @@ pub fn App(cx: Scope) -> impl IntoView {
                 <h2>"A Letpos HTTPS Auth Example"</h2>
                 <LogHeader/>
                 <Transition
-                    fallback=move || view! {cx, <span>"Loading..."</span>}
+                    fallback=move || view! { <span>"Loading..."</span> }
                 >
                 {move || {
-                    userdata.read(cx).map(|user| match user {
-                        Err(e) => view! {cx,
+                    userdata.read().map(|user| match user {
+                        Err(e) => view! {
                             <A href="/signup">"Signup"</A>", "
                             <A href="/login">"Login"</A>", "
                             <span>{format!("Login error: {}", e)}</span>
-                        }.into_view(cx),
-                        Ok(None) => view! {cx,
+                        }.into_view(),
+                        Ok(None) => view! {
                             <A href="/signup">"Signup"</A>", "
                             <A href="/login">"Login"</A>", "
                             <span>"Logged out."</span>
-                        }.into_view(cx),
-                        Ok(Some(user)) => view! {cx,
+                        }.into_view(),
+                        Ok(Some(user)) => view! {
                             <A href="/settings">"Settings"</A>", "
                             <span>{format!("Logged in as: {}", user.display_name)}</span>
-                        }.into_view(cx)
+                        }.into_view()
                     })
                 }}
                 </Transition>
@@ -134,17 +132,14 @@ pub fn App(cx: Scope) -> impl IntoView {
             <div/>
             <main>
             <Routes>
-                <Route path="" view=move |cx| view! {cx, <HomePage action1=login action2=signup action3=logout/> }/> //Route
-                <Route path="signup" view=move |cx| view! {
-                    cx,
+                <Route path="" view=move || view! {<HomePage action1=login action2=signup action3=logout/> }/> //Route
+                <Route path="signup" view=move || view! {
                     <Signup action=signup/>
                 }/>
-                <Route path="login" view=move |cx| view! {
-                    cx,
+                <Route path="login" view=move || view! {
                     <Login action=login />
                 }/>
-                <Route path="settings" view=move |cx| view! {
-                    cx,
+                <Route path="settings" view=move || view! {
                     <h1>"Settings"</h1>
                     <Logout action=logout />
                 }/>
@@ -155,21 +150,21 @@ pub fn App(cx: Scope) -> impl IntoView {
 }
 
 #[server(GetUserData, "/api")]
-pub async fn get_userdata(cx: Scope) -> Result<Option<UserData>, ServerFnError> {
-    let session_valid = validate_session(cx).await?;
+pub async fn get_userdata() -> Result<Option<UserData>, ServerFnError> {
+    let session_valid = validate_session().await?;
     match session_valid {
-        Some(id) => Ok(Some(crate::database::userdata(cx, id).await?)),
+        Some(id) => Ok(Some(crate::database::userdata(id).await?)),
         None => Ok(None),
     }
 }
 
 /// Renders the non-logged in landing page.
 #[component]
-pub fn Login(cx: Scope, action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView {
+pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView {
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
-    view! { cx,
+    view! {
         <ActionForm action=action>
                 <CSRFField/>
                 <p>
@@ -182,22 +177,20 @@ pub fn Login(cx: Scope, action: Action<Login, Result<(), ServerFnError>>) -> imp
                 </p>
                     <input type="submit" disabled=submit_disabled value="Login"/>
             </ActionForm>
-        <p><a href="/home">"Check if session is valid"</a></p>
         <p><a href="/">"Return to landing page"</a></p>
     }
 }
 
 #[server(Login, "/api")]
 pub async fn login(
-    cx: Scope,
     csrf: String,
     username: String,
     password: String,
 ) -> Result<(), ServerFnError> {
-    let user_id = validate_login(cx, csrf, username, SecretString::from(password)).await?;
+    let user_id = validate_login(csrf, username, SecretString::from(password)).await?;
     let session_id = gen_128bit_base64();
-    issue_session_cookie(cx, user_id, session_id).await?;
-    redirect(cx, "/");
+    issue_session_cookie(user_id, session_id).await?;
+    redirect("/");
     Ok(())
 }
 
@@ -205,14 +198,11 @@ pub async fn login(
 /// uses Double Submit Cookie method to prevent CSRF
 /// [https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#double-submit-cookie]
 #[component]
-pub fn Signup(
-    cx: Scope,
-    action: Action<Signup, Result<String, ServerFnError>>,
-) -> impl IntoView {
+pub fn Signup(action: Action<Signup, Result<String, ServerFnError>>) -> impl IntoView {
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
-    view! { cx,
+    view! {
         <h2>"Sign Up"</h2>
         <p>
             <ActionForm action=action>
@@ -255,7 +245,6 @@ pub fn Signup(
 
 #[server(Signup, "/api")]
 pub async fn signup(
-    cx: Scope,
     csrf: String,
     username: String,
     display: String,
@@ -265,7 +254,6 @@ pub async fn signup(
     password_confirmation: String,
 ) -> Result<String, ServerFnError> {
     let user_id = match validate_registration(
-        cx,
         csrf,
         username,
         display,
@@ -282,15 +270,14 @@ pub async fn signup(
         }
     };
     let session_id = gen_128bit_base64();
-    issue_session_cookie(cx, user_id, session_id).await?;
-    redirect(cx, "/");
+    issue_session_cookie(user_id, session_id).await?;
+    redirect("/");
     Ok(String::from("Registration Successful"))
 }
 
 #[component]
-pub fn Logout(cx: Scope, action: Action<Logout, Result<(), ServerFnError>>) -> impl IntoView {
+pub fn Logout(action: Action<Logout, Result<(), ServerFnError>>) -> impl IntoView {
     view! {
-        cx,
         <div id="loginbox">
             <ActionForm action=action>
                 <button type="submit" class="button">"Log Out"</button>
@@ -300,7 +287,8 @@ pub fn Logout(cx: Scope, action: Action<Logout, Result<(), ServerFnError>>) -> i
 }
 
 #[server(Logout, "/api")]
-async fn logout(cx: Scope) -> Result<(), ServerFnError> {
-    destroy_session(cx).await;
+async fn logout() -> Result<(), ServerFnError> {
+    destroy_session().await;
+    redirect("/");
     Ok(())
 }

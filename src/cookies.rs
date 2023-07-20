@@ -13,8 +13,8 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 }}
 
 #[cfg(feature = "ssr")]
-pub async fn destroy_session(cx: Scope) {
-    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
+pub async fn destroy_session() {
+    let response = match use_context::<leptos_axum::ResponseOptions>() {
         Some(rp) => rp, // actual user request
         None => return, // no request, building routes in main.rs
     };
@@ -27,22 +27,21 @@ pub async fn destroy_session(cx: Scope) {
         .expect("to create header value"),
     );
     // extract request, bailing if there is none
-    let http_req = match use_context::<RequestParts>(cx) {
+    let http_req = match use_context::<RequestParts>() {
         Some(rp) => rp, // actual user request
         None => return, // no request, building routes in main.rs
     };
     // grab request's session
     let unverified_session_id = parse_session_cookie(http_req);
-    drop_session(cx, &unverified_session_id).await;
+    drop_session(&unverified_session_id).await;
 }
 
 #[cfg(feature = "ssr")]
 pub async fn issue_session_cookie(
-    cx: Scope,
     user_id: Uuid,
     session_id: String,
 ) -> Result<(), ServerFnError> {
-    let response = match use_context::<leptos_axum::ResponseOptions>(cx) {
+    let response = match use_context::<leptos_axum::ResponseOptions>() {
         Some(ro) => ro,
         None => {
             return Err(ServerFnError::ServerError(String::from(
@@ -52,7 +51,7 @@ pub async fn issue_session_cookie(
     };
     let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
     let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
-    associate_session(cx, user_id, &session_id, expire_time).await?;
+    associate_session(user_id, &session_id, expire_time).await?;
     response.append_header(
         SET_COOKIE,
         HeaderValue::from_str(&format!(
@@ -65,15 +64,15 @@ pub async fn issue_session_cookie(
 }
 
 #[cfg(feature = "ssr")]
-pub async fn validate_session(cx: Scope) -> Result<Option<Uuid>, ServerFnError> {
+pub async fn validate_session() -> Result<Option<Uuid>, ServerFnError> {
     // extract request, bailing if there is none
-    let http_req = match use_context::<RequestParts>(cx) {
+    let http_req = match use_context::<RequestParts>() {
         Some(rp) => rp,          // actual user request
         None => return Ok(None), // no request, building routes in main.rs
     };
     // grab request's session
     let unverified_session_id = parse_session_cookie(http_req);
-    validate_token(cx, unverified_session_id).await
+    validate_token(unverified_session_id).await
     // do not renew cookies every time, force logins every 30 days
 }
 

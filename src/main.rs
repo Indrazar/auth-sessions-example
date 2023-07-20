@@ -93,7 +93,7 @@ async fn main() {
     };
 
     // Generate the list of routes in your Leptos App
-    let routes = generate_route_list(|cx| leptos::view! { cx, <App/> }).await;
+    let routes = generate_route_list(|| leptos::view! { <App/> }).await;
 
     //setup db pool
     let pool_options = SqlitePoolOptions::new()
@@ -138,10 +138,10 @@ async fn leptos_routes_handler(
 ) -> Response {
     let handler = leptos_axum::render_app_to_stream_with_context(
         (*options).clone(),
-        move |cx| {
-            provide_context(cx, pool.clone());
+        move || {
+            provide_context(pool.clone());
         },
-        |cx| view! {cx, <App/> },
+        || view! {<App/>},
     );
     handler(req).await.into_response()
 }
@@ -164,9 +164,9 @@ async fn api_fn_handler(
         path,
         headers,
         query,
-        move |cx| {
-            provide_context(cx, pool.clone());
-            provide_context(cx, connect_info)
+        move || {
+            provide_context(pool.clone());
+            provide_context(connect_info)
         },
         request,
     )

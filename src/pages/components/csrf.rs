@@ -9,23 +9,22 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 /// This will add a hidden input field to any ActionForm which can be used
 /// to mitigate CSRF attacks using a __Host-csrf cookie
 #[component]
-pub fn CSRFField(cx: Scope) -> impl IntoView {
-    let csrf_action = create_server_action::<IssueCSRF>(cx);
+pub fn CSRFField() -> impl IntoView {
+    let csrf_action = create_server_action::<IssueCSRF>();
     let csrf_resource = create_resource(
-        cx,
         move || (csrf_action.version().get()),
         move |_| {
             log::trace!("CSRF retriever running fetcher");
-            issue_csrf(cx)
+            issue_csrf()
         },
     );
 
-    view! { cx,
-        <Suspense fallback={move || view! {cx, <>"Loading..."</>}}>
+    view! {
+        <Suspense fallback={move || view! { <>"Loading..."</> }}>
             {move || {
-                csrf_resource.read(cx).map(|n| match n {
-                    Err(_) => view! {cx, <>"Page Load Failed. Please reload the page or try again later."</>},
-                    Ok(csrf) => view! {cx, <><input type="hidden" name="csrf" value=csrf/></>},
+                csrf_resource.read().map(|n| match n {
+                    Err(_) => view! { <>"Page Load Failed. Please reload the page or try again later."</>},
+                    Ok(csrf) => view! { <><input type="hidden" name="csrf" value=csrf/></>},
                 })
             }}
         </Suspense>
@@ -33,6 +32,6 @@ pub fn CSRFField(cx: Scope) -> impl IntoView {
 }
 
 #[server(IssueCSRF, "/api")]
-async fn issue_csrf(cx: Scope) -> Result<String, ServerFnError> {
-    Ok(generate_csrf(cx))
+async fn issue_csrf() -> Result<String, ServerFnError> {
+    Ok(generate_csrf())
 }

@@ -1,6 +1,3 @@
-# Does This Work?
-Kind of. It's mostly a learning experience and I have only a small idea what I am doing. This section will disappear once it is a more serious template.
-
 # Notes about Spam
 Opening this to the greater internet is likey a VERY BAD idea unless you at a minimum implement recaptcha (just an example, not a recommendation) and/or other bot mitigations.
 The bots will arrive and they will sell you uggs.

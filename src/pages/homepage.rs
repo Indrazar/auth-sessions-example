@@ -4,13 +4,11 @@ use crate::pages::{get_userdata, Login, Logout, Signup};
 
 #[component]
 pub fn HomePage(
-    cx: Scope,
     action1: Action<Login, Result<(), ServerFnError>>,
     action2: Action<Signup, Result<String, ServerFnError>>,
     action3: Action<Logout, Result<(), ServerFnError>>,
 ) -> impl IntoView {
     let user_resource = create_resource(
-        cx,
         move || {
             (
                 action1.version().get(),
@@ -18,28 +16,28 @@ pub fn HomePage(
                 action3.version().get(),
             )
         },
-        move |_| get_userdata(cx),
+        move |_| get_userdata(),
     );
 
-    view! { cx,
+    view! {
         <Transition
-            fallback=move || view! {cx, <p>"Loading..."</p>}
+            fallback=move || view! {<p>"Loading..."</p>}
         >
         {move || {
-            user_resource.read(cx).map(|data| match data {
-                Err(e) => view! {cx,
+            user_resource.read().map(|data| match data {
+                Err(e) => view! {
                     <p>"There was an error loading the page."</p>
                     <span>{format!("error: {}", e)}</span>
-                }.into_view(cx),
-                Ok(None) => view! {cx,
+                }.into_view(),
+                Ok(None) => view! {
                     <></>
-                }.into_view(cx),
-                Ok(Some(userdata)) => view! {cx,
+                }.into_view(),
+                Ok(Some(userdata)) => view! {
                     <div class="main-text">
                         <p>"Hello! This is your home page " {userdata.display_name.clone()} </p>
                         <p>"More information could be put here if we wanted. So far all we have is: " {format!("{:?}", userdata.clone())}</p>
                     </div>
-                }.into_view(cx),
+                }.into_view(),
             })
         }}
         </Transition>
