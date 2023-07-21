@@ -64,11 +64,11 @@ pub async fn issue_session_cookie(
 }
 
 #[cfg(feature = "ssr")]
-pub async fn validate_session() -> Result<Option<Uuid>, ServerFnError> {
+pub async fn validate_session() -> Option<Uuid> {
     // extract request, bailing if there is none
     let http_req = match use_context::<RequestParts>() {
-        Some(rp) => rp,          // actual user request
-        None => return Ok(None), // no request, building routes in main.rs
+        Some(rp) => rp,      // actual user request
+        None => return None, // no request, building routes in main.rs
     };
     // grab request's session
     let unverified_session_id = parse_session_cookie(http_req);

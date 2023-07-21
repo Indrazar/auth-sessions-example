@@ -11,8 +11,17 @@ use homepage::*;
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::{validate_session, issue_session_cookie, destroy_session};
     use crate::security::{validate_login, gen_128bit_base64, validate_registration};
-    use secrecy::SecretString;
+    use axum::{
+        body::{boxed, Body, BoxBody},
+        extract::Extension,
+        response::IntoResponse,
+        http::{Request, Response, HeaderMap, header::ACCEPT_ENCODING, HeaderValue, header::CONTENT_TYPE, StatusCode, Uri},
+    };
+    use axum::response::Response as AxumResponse;
+    use futures::StreamExt;
     use leptos_axum::redirect;
+    use secrecy::SecretString;
+
 }}
 
 use crate::database::UserData;
@@ -21,7 +30,6 @@ pub mod error_template;
 
 #[cfg(feature = "ssr")]
 fn set_headers() {
-    use axum::http::{header::CONTENT_TYPE, HeaderValue};
     let response = match use_context::<leptos_axum::ResponseOptions>() {
         Some(ro) => ro,
         None => return,
@@ -79,7 +87,7 @@ pub fn App() -> impl IntoView {
                 logout.version().get(),
             )
         },
-        move |_| get_userdata(),
+        move |_| get_user_data(),
     );
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
@@ -132,7 +140,7 @@ pub fn App() -> impl IntoView {
             <div/>
             <main>
             <Routes>
-                <Route path="" view=move || view! {<HomePage action1=login action2=signup action3=logout/> }/> //Route
+                <Route path="" view=move || view! {<HomePage/> }/> //Route
                 <Route path="signup" view=move || view! {
                     <Signup action=signup/>
                 }/>
@@ -150,10 +158,9 @@ pub fn App() -> impl IntoView {
 }
 
 #[server(GetUserData, "/api")]
-pub async fn get_userdata() -> Result<Option<UserData>, ServerFnError> {
-    let session_valid = validate_session().await?;
-    match session_valid {
-        Some(id) => Ok(Some(crate::database::userdata(id).await?)),
+pub async fn get_user_data() -> Result<Option<UserData>, ServerFnError> {
+    match validate_session().await {
+        Some(id) => Ok(crate::database::user_data(id).await),
         None => Ok(None),
     }
 }

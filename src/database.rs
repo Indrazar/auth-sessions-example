@@ -24,15 +24,14 @@ struct UserDataForPage {
 }
 
 #[cfg(feature = "ssr")]
-pub fn pool() -> Result<SqlitePool, ServerFnError> {
-    use_context::<SqlitePool>()
-        .ok_or("Pool missing.")
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))
-}
-
-#[cfg(feature = "ssr")]
-pub async fn userdata(id: Uuid) -> Result<UserData, ServerFnError> {
-    let pool = pool()?;
+pub async fn user_data(id: Uuid) -> Option<UserData> {
+    let pool = match use_context::<SqlitePool>() {
+        Some(pool) => pool,
+        None => {
+            log::error!("user_data unable to aquire sqlite pool");
+            return None;
+        }
+    };
     let row = sqlx::query_as!(
         UserDataForPage,
         r#"SELECT display_name, button_presses FROM users WHERE user_id = ?"#,
@@ -42,34 +41,42 @@ pub async fn userdata(id: Uuid) -> Result<UserData, ServerFnError> {
     .await;
     let (display_name, button_presses): (String, i64) = match row {
         Ok(res) => (res.display_name, res.button_presses),
-        Err(e) => match e {
-            sqlx::Error::RowNotFound => {
-                return Err(ServerFnError::ServerError(String::from(
-                    "User ID not found",
-                )));
+        Err(e) => {
+            match e {
+                sqlx::Error::RowNotFound => {
+                    log::error!("database lookup for user_data on id {id} did not exist with error: {e}");
+                    return None;
+                }
+                _ => {
+                    log::error!("database lookup for user_data on id {id} failed: {e}");
+                    return None;
+                }
             }
-            _ => {
-                log::trace!("database lookup for display name failed: {e}");
-                return Err(ServerFnError::ServerError(String::from(
-                    "Information retrieval failed",
-                )));
-            }
-        },
+        }
     };
-    Ok(UserData {
-        display_name: display_name,
-        button_presses: button_presses,
+    Some(UserData {
+        display_name,
+        button_presses,
     })
 }
 
 #[cfg(feature = "ssr")]
 pub async fn register_user(
+    //TODO REDO TO BE OPTION
     username: String,
     display_name: String,
     email: String,
     password_hash: String,
 ) -> Result<Uuid, ServerFnError> {
-    let pool = pool()?;
+    let pool = match use_context::<SqlitePool>() {
+        Some(pool) => pool,
+        None => {
+            log::error!("could not retrieve sql pool in register_user");
+            return Err(ServerFnError::ServerError(String::from(
+                "Signup Request failed.",
+            )));
+        }
+    };
     let id = Uuid::now_v7();
     let query_res = sqlx::query!(
         "INSERT INTO users (user_id, username, display_name, email, verified, password_hash, button_presses) \
@@ -112,7 +119,8 @@ pub async fn associate_session(
     session_id: &String,
     expire_time: DateTime<Utc>,
 ) -> Result<(), ServerFnError> {
-    let pool = pool()?;
+    let pool =
+        use_context::<SqlitePool>().expect("sql pool not available in associate_session");
     let query_res = sqlx::query!(
         "INSERT INTO active_sesssions (session_id, user_id, expiry) VALUES (?, ?, ?)",
         session_id,
@@ -140,13 +148,7 @@ pub async fn associate_session(
 
 #[cfg(feature = "ssr")]
 pub async fn drop_session(session_id: &String) {
-    let pool = match pool() {
-        Ok(pool) => pool,
-        Err(e) => {
-            log::error!("could not retrieve pool in drop_session: {e}");
-            return;
-        }
-    };
+    let pool = use_context::<SqlitePool>().expect("sql pool not available in drop_session");
     let remove_res = sqlx::query!(
         "DELETE FROM active_sesssions WHERE session_id = ?",
         session_id
@@ -180,10 +182,14 @@ struct ValidateSession {
 }
 
 #[cfg(feature = "ssr")]
-pub async fn validate_token(
-    untrusted_session: String,
-) -> Result<Option<uuid::Uuid>, ServerFnError> {
-    let pool = pool()?;
+pub async fn validate_token(untrusted_session: String) -> Option<uuid::Uuid> {
+    let pool = match use_context::<SqlitePool>() {
+        Some(pool) => pool,
+        None => {
+            log::error!("validate_token could not retrieve sql pool");
+            return None;
+        }
+    };
     let row = sqlx::query_as!(
         ValidateSession,
         r#"SELECT user_id AS "user_id: Uuid", expiry AS "expiry: DateTime<Utc>" FROM active_sesssions WHERE session_id = ?"#,
@@ -195,22 +201,20 @@ pub async fn validate_token(
         Ok(cred) => (cred.user_id, cred.expiry),
         Err(e) => match e {
             sqlx::Error::RowNotFound => {
-                return Ok(None);
+                return None;
             }
             _ => {
-                log::debug!("invalid session provided with error: {e}");
-                return Err(ServerFnError::ServerError(String::from(
-                    "Session retrieval failed",
-                )));
+                log::error!("validate_token: sqlx error: {e}");
+                return None;
             }
         },
     };
     //validate NOT expired
     if expiry < Utc::now() {
         drop_session(&untrusted_session).await;
-        Ok(None)
+        None
     } else {
-        Ok(Some(true_uuid))
+        Some(true_uuid)
     }
 }
 
@@ -225,7 +229,8 @@ struct ValidateCredential {
 pub async fn retrieve_credentials(
     username: &String,
 ) -> Result<Option<(Uuid, SecretString)>, ServerFnError> {
-    let pool = pool()?;
+    let pool =
+        use_context::<SqlitePool>().expect("sql pool not available in retrieve_credentials");
     let row = sqlx::query_as!(
         ValidateCredential,
         r#"SELECT user_id AS "user_id: Uuid", password_hash FROM users WHERE username = ?"#,
@@ -277,7 +282,7 @@ pub async fn unique_cred_check(input: UniqueCredential) -> Result<(), Registrati
 
 #[cfg(feature = "ssr")]
 async fn username_check(username: String) -> Result<(), RegistrationError> {
-    let pool = pool()?;
+    let pool = use_context::<SqlitePool>().expect("sql pool not available in username_check");
     let user_exists =
         match sqlx::query!("SELECT username FROM users WHERE username = ?", username)
             .fetch_one(&pool)
@@ -305,7 +310,8 @@ async fn username_check(username: String) -> Result<(), RegistrationError> {
 
 #[cfg(feature = "ssr")]
 async fn display_name_check(display_name: String) -> Result<(), RegistrationError> {
-    let pool = pool()?;
+    let pool =
+        use_context::<SqlitePool>().expect("sql pool not available in display_name_check");
     let display_exists = match sqlx::query!(
         "SELECT display_name FROM users WHERE display_name = ?",
         display_name
