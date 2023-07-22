@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 argon2 = { version = "0.5.0", features = ["std"], optional = true }
-axum = { version = "0.6", optional = true, features = ["headers"] }
+axum = { version = "0.6", optional = true, features = ["headers", "ws"] }
 axum-server = { version = "0.5", features = ["tls-rustls"], optional = true }
 base64 = { version = "0.21", features = ["std"], optional = true }
 broadcaster = "1"
@@ -16,11 +16,13 @@ cfg-if = "1"
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock", "std"] }
 console_error_panic_hook = "0.1"
 console_log = "1.0"
+default-struct-builder = "0.4"
 dotenvy = { version = "0.15", optional = true }
 email_address = { version = "0.2", optional = true }
 futures = "0.3"
 gloo-net = "0.3"
 http = "0.2"
+js-sys = "0.3"
 #jsonwebtoken = { version = "8.0", optional = true }
 lazy_static = "1"
 leptos = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", default-features = false}
@@ -40,12 +42,15 @@ simple_logger = "4"
 sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"], optional = true }
 thiserror = "1.0"
 tokio = { version = "1.25", features = ["full"], optional = true }
+tokio-tungstenite = { version = "0.20", optional = true }
 tower = { version = "0.4", optional = true }
 #tower-governor = { version = "0.0.4", git = "https://github.com/benwis/tower-governor", optional = true }
-tower-http = { version = "0.4.0", features = ["fs", "compression-gzip"], optional = true }
+tower-http = { version = "0.4.0", features = ["fs", "compression-gzip", "trace"], optional = true }
+#tracing = { version = "0.1", optional = true }
+#tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
 uuid = { version = "1.3.0", features = ["fast-rng", "std", "serde", "v4", "v7"], optional = true }
 wasm-bindgen = "0.2"
-web-sys = { version = "0.3", optional = true, features = ["AbortController", "AbortSignal", "HtmlDocument",] }
+web-sys = { version = "0.3", features = ["AbortController", "AbortSignal", "HtmlDocument",] }
 
 
 [features]
@@ -53,7 +58,6 @@ hydrate = [
     "leptos/hydrate",
     "leptos_meta/hydrate",
     "leptos_router/hydrate",
-    "dep:web-sys"
 ]
 ssr = [
     "dep:axum",
@@ -75,6 +79,9 @@ ssr = [
     "dep:secrecy",
     "dep:argon2",
     "dep:uuid",
+#    "dep:tracing",
+#    "dep:tracing-subscriber",
+    "dep:tokio-tungstenite",
 #   "dep:jsonwebtoken",
 #   "dep:oauth2",
 #   "dep:tower-governor",

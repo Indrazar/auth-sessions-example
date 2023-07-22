@@ -22,10 +22,16 @@ pub fn HomePage() -> impl IntoView {
                     <div class="main-text">
                         <p>"Hello! This is your home page " {userdata.display_name.clone()} "."</p>
                         <p>"More information could be put here if we wanted. So far all we have is: " {format!("{:?}", userdata.clone())}</p>
+                        <TheButton/>
                     </div>
                 }.into_view(),
             })
         }}
         </Transition>
     }
+}
+
+#[component]
+pub fn TheButton() -> impl IntoView {
+    view! {}
 }

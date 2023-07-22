@@ -9,6 +9,7 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     use auth_sessions_example::{
         fileserv::file_and_error_handler,
         pages::App,
+        websocket::axum_ws_handler,
     };
     use axum::{
         extract::{Extension, Host, Path, ConnectInfo},
@@ -112,6 +113,7 @@ async fn main() {
     // build our application with a route
     let app = Router::new()
         .route("/api/*fn_name", post(api_fn_handler))
+        .route("/ws", get(axum_ws_handler))
         .leptos_routes_with_handler(routes, get(leptos_routes_handler))
         .fallback(file_and_error_handler)
         .layer(Extension(Arc::new(leptos_options.clone())))

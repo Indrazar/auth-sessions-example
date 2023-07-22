@@ -4,6 +4,12 @@ pub mod defs;
 pub mod fileserv;
 pub mod pages;
 pub mod security;
+pub mod websocket;
+
+#[cfg(not(feature = "ssr"))]
+use websocket::{
+    use_websocket, WebSysWebSocketOptions, WebSysWebSocketReadyState, WebSysWebsocketReturn,
+};
 
 use cfg_if::cfg_if;
 cfg_if! { if #[cfg(feature = "hydrate")] {

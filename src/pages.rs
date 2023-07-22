@@ -12,16 +12,16 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::{validate_session, issue_session_cookie, destroy_session};
     use crate::security::{validate_login, gen_128bit_base64, validate_registration};
     use axum::{
-        body::{boxed, Body, BoxBody},
-        extract::Extension,
-        response::IntoResponse,
-        http::{Request, Response, HeaderMap, header::ACCEPT_ENCODING, HeaderValue, header::CONTENT_TYPE, StatusCode, Uri},
+        //body::{boxed, Body, BoxBody},
+        //extract::Extension,
+        //response::IntoResponse,
+        //http::{Request, Response, HeaderMap, header::ACCEPT_ENCODING, HeaderValue, header::CONTENT_TYPE, StatusCode, Uri},
+        http::{HeaderValue, header::CONTENT_TYPE}
     };
-    use axum::response::Response as AxumResponse;
-    use futures::StreamExt;
+    //use axum::response::Response as AxumResponse;
+    //use futures::StreamExt;
     use leptos_axum::redirect;
     use secrecy::SecretString;
-
 }}
 
 use crate::database::UserData;
