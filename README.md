@@ -17,14 +17,14 @@ cargo install cargo-leptos
 
 ## Installing Additional Tools
 
-By default, `cargo-leptos` uses `nightly` Rust, `cargo-generate`, and `sass`. If you run into any trouble, you may need to install one or more of these tools.
+In the past `Leptos` used `nightly` Rust as default, but now `stable` is the default.
+This project follows `stable`.
+`cargo-leptos` uses `cargo-generate` and `sass`. If you run into any trouble, you may need to install one or more of these tools.
 
-1. `rustup toolchain install nightly` - make sure you have Rust nightly
-2. `rustup default nightly` - setup nightly as default for ease-of-use, remember to switch back to `rustup default stable` when you're done
-3. `rustup target add wasm32-unknown-unknown` - add the ability to compile Rust to WebAssembly
-4. `cargo install cargo-generate` - to install `cargo-generate`
-5. `cargo install sqlx-cli` - to install `sqlx`
-6. `npm install -g sass` - to install `dart-sass`
+1. `rustup target add wasm32-unknown-unknown` - add the ability to compile Rust to WebAssembly
+2. `cargo install cargo-generate` - to install `cargo-generate`
+3. `cargo install sqlx-cli` - to install `sqlx`
+4. `npm install -g sass` - to install `dart-sass`
 
 ## Installing OpenSSL on Windows
 
@@ -32,7 +32,7 @@ By default, `cargo-leptos` uses `nightly` Rust, `cargo-generate`, and `sass`. If
 
 ### Installing OpenSSL using precompiled binaries
 
-The easiest way to do get OpenSSL working is to download [precompiled binaries](https://slproweb.com/products/Win32OpenSSL.html) and install them on your system. Compiling it yourself is left as an exercise for the reader. Currently it's recommended to install the newest (non-light) installation. Please be aware that this basically means you are trusting SLPROWEB with _all_ your cryptography built using that binary. [Chocolatey.org](https://community.chocolatey.org/packages/OpenSSL.Light) trusts it so maybe it's fine (check the "Software Site" link).
+The easiest way to do get OpenSSL working is to download [precompiled binaries](https://slproweb.com/products/Win32OpenSSL.html) and install them on your system. Compiling it yourself is left as an exercise for the reader. Currently it's recommended to install the newest (non-light) installation. Please be aware that this basically means you are trusting SLPROWEB with _all_ your cryptography built using that binary. [Chocolatey.org](https://community.chocolatey.org/packages/OpenSSL) [trusts it](https://github.com/chtof/chocolatey-packages/blob/master/automatic/openssl/tools/chocolateyinstall.ps1) so maybe it's fine (see the git repo ps1 file url).
 
 Once a precompiled binary is installed you must update your user or system environment variable to the installed directory. As an example:
 
@@ -67,6 +67,7 @@ openssl req -newkey rsa:2048 -nodes -keyout self_signed_certs/key.pem -x509 -day
 ```
 
 ## Environment Setup
+
 Copy `.env.example` into `.env` and make sure the settings are correct.
 
 ## Running in dev mode
@@ -85,12 +86,12 @@ cargo leptos serve --release
 ```
 
 ## Executing on a Remote Machine Without the Rust Toolchain
-1. Update the `Cargo.toml` setting: `env = "PROD"` for Production mode  
+1. Update the `Cargo.toml` setting: `env = "PROD"` for Production mode
 2. Run `cargo leptos build --release` on the build machine.
-3. Prepare:  
-    1. Server binary located in `target/server/release`  
-    2. `site` directory and all files within located in `target/site`  
-    3. `.env` file with all the environment variables or the environment variables set.  
+3. Prepare:
+    1. Server binary located in `target/server/release`
+    2. `site` directory and all files within located in `target/site`
+    3. `.env` file with all the environment variables or the environment variables set.
         note: `LIVE_HTTP_REDIRECT` and `LEPTOS_SITE_ADDR` highly depend on where and how you are deploying the server.
 4. Copy these files to your remote server. The directory structure should be:
 ```text
@@ -98,11 +99,6 @@ cargo leptos serve --release
 auth-sessions-example
 site/
 ```
-5. The code supports `gzip`-ing all files within the `site` directory ahead of running the binary.
+5. The code supports individually `gzip`-ing all files within the `site` directory ahead of running the binary.
 6. Copy `.env.example` into `.env` and make sure the settings are correct.
-7. Generate a new database and apply the included migration.
-```
-sqlx database create
-sqlx migrate run
-```
-8. Finally, run the server binary.
+7. Finally, run the server binary.
