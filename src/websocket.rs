@@ -1,3 +1,5 @@
+#![cfg_attr(feature = "ssr", allow(unused_variables, dead_code))]
+
 use default_struct_builder::DefaultBuilder;
 use leptos::{leptos_dom::helpers::TimeoutHandle, *};
 use std::{
@@ -7,24 +9,23 @@ use std::{
 use web_sys::{CloseEvent, Event, WebSocket as WebSysWebSocket};
 
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
+    use crate::{cookies::parse_session_header_cookie, database::validate_token_with_pool};
     use axum::{
         extract::{
-            ws::{Message, WebSocket as AxumWebSocket, WebSocketUpgrade as AxumWebSocketUpgrade},
+            Extension,
+            ws::{CloseFrame, Message, WebSocket as AxumWebSocket, WebSocketUpgrade as AxumWebSocketUpgrade},
             TypedHeader,
+            connect_info::ConnectInfo,
         },
         response::IntoResponse,
+        http::StatusCode,
     };
-
-    use std::borrow::Cow;
-    use std::ops::ControlFlow;
-    use std::{net::SocketAddr};
-
-    //allows to extract the IP of connecting user
-    use axum::extract::connect_info::ConnectInfo;
-    use axum::extract::ws::CloseFrame;
-
+    use std::{borrow::Cow, ops::ControlFlow, net::SocketAddr, sync::Arc};
     //allows to split the websocket stream into separate TX and RX branches
     use futures::{sink::SinkExt, stream::StreamExt};
+    //needed to extract the pool from the axum request
+    use sqlx::SqlitePool;
+    use uuid::Uuid;
 } else {
     use web_sys::{BinaryType, MessageEvent};
     use js_sys::Array;
@@ -146,7 +147,7 @@ where
     pub send_bytes: SendBytesFn,
 }
 
-pub fn use_websocket(
+pub fn web_sys_websocket(
     url: String,
     options: WebSysWebSocketOptions,
 ) -> WebSysWebsocketReturn<
@@ -405,22 +406,62 @@ pub fn use_websocket(
 pub async fn axum_ws_handler(
     ws: AxumWebSocketUpgrade,
     user_agent: Option<TypedHeader<axum::headers::UserAgent>>,
+    origin: Option<TypedHeader<axum::headers::Origin>>,
+    header_cookies: Option<TypedHeader<axum::headers::Cookie>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    Extension(options): Extension<Arc<LeptosOptions>>,
+    Extension(pool): Extension<SqlitePool>,
 ) -> impl IntoResponse {
     let user_agent = if let Some(TypedHeader(user_agent)) = user_agent {
         user_agent.to_string()
     } else {
         String::from("Unknown browser")
     };
-    log::trace!("`{user_agent}` at {addr} connected.");
+    let origin = if let Some(TypedHeader(origin)) = origin {
+        origin.to_string()
+    } else {
+        String::from("Unknown origin")
+    };
+    let site_url = format!("https://{}", (*options).site_addr.to_string());
+    // validate origin header
+    if origin != site_url {
+        log::trace!(
+            "`{user_agent}` from {addr} with origin {origin} websocket rejected due to invalid origin."
+        );
+        return (
+            StatusCode::FORBIDDEN,
+            format!("this websocket can only be accessed via {site_url}"),
+        )
+            .into_response();
+    }
+    let cookies = match header_cookies {
+        Some(TypedHeader(cookies)) => cookies,
+        None => {
+            log::trace!(
+                "`{user_agent}` from {addr} wtih no cookies websocket rejected due to no cookies."
+            );
+            return (StatusCode::UNAUTHORIZED, "please sign in first").into_response();
+        }
+    };
+    // validate Uuid and pass into handler
+    let unverified_session_id = parse_session_header_cookie(&cookies);
+    let user_uuid = match validate_token_with_pool(unverified_session_id, pool).await {
+        Some(id) => id,
+        None => {
+            log::trace!(
+            "`{user_agent}` from {addr} wtih cookies {:#?} websocket rejected due to invalid session.", cookies);
+            return (StatusCode::UNAUTHORIZED, "please sign in first").into_response();
+        }
+    };
+    log::trace!("`{user_agent}` from {addr} websocket request accepted for uuid {user_uuid}.");
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
-    ws.on_upgrade(move |socket| handle_socket(socket, addr))
+    ws.on_upgrade(move |socket| handle_socket(socket, addr, user_uuid))
 }
 
 #[cfg(feature = "ssr")]
 /// Actual websocket statemachine (one will be spawned per connection)
-async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr) {
+async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
     //send a ping (unsupported by some browsers) just to kick things off and get a response
     if socket.send(Message::Ping(vec![1, 2, 3])).await.is_ok() {
         log::trace!("Pinged {}...", who);
@@ -479,7 +520,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr) {
                 return i;
             }
 
-            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
 
         log::trace!("Sending close to {who}...");

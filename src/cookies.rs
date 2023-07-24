@@ -32,7 +32,7 @@ pub async fn destroy_session() {
         None => return, // no request, building routes in main.rs
     };
     // grab request's session
-    let unverified_session_id = parse_session_cookie(http_req);
+    let unverified_session_id = parse_session_req_parts_cookie(http_req);
     drop_session(&unverified_session_id).await;
 }
 
@@ -71,13 +71,21 @@ pub async fn validate_session() -> Option<Uuid> {
         None => return None, // no request, building routes in main.rs
     };
     // grab request's session
-    let unverified_session_id = parse_session_cookie(http_req);
+    let unverified_session_id = parse_session_req_parts_cookie(http_req);
     validate_token(unverified_session_id).await
     // do not renew cookies every time, force logins every 30 days
 }
 
 #[cfg(feature = "ssr")]
-fn parse_session_cookie(req: RequestParts) -> String {
+pub fn parse_session_header_cookie(cookies: &axum::headers::Cookie) -> String {
+    if let Some(session) = cookies.get("SESSIONID") {
+        return session.to_string();
+    }
+    String::default()
+}
+
+#[cfg(feature = "ssr")]
+pub fn parse_session_req_parts_cookie(req: RequestParts) -> String {
     for headercookie in req.headers.get_all(COOKIE).iter() {
         match headercookie.to_str() {
             Ok(cookie) => {

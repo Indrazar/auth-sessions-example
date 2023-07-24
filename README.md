@@ -80,6 +80,8 @@ cargo leptos watch
 
 First update the `Cargo.toml` setting: `env = "PROD"` for Production mode
 Then ensure the `.env` settings are correct for production.
+You may want to tune the `[profile.server-release]` and `[profile.wasm-release]` in `Cargo.toml` to meet your needs.
+Please note that `codegen-units = 1` may produce faster code but it takes much longer to compile. 16 is default for Rust's release builds.
 
 ```bash
 cargo leptos serve --release
@@ -89,7 +91,7 @@ cargo leptos serve --release
 1. Update the `Cargo.toml` setting: `env = "PROD"` for Production mode
 2. Run `cargo leptos build --release` on the build machine.
 3. Prepare:
-    1. Server binary located in `target/server/release`
+    1. Server binary located in `target/server/server-release`
     2. `site` directory and all files within located in `target/site`
     3. `.env` file with all the environment variables or the environment variables set.
         note: `LIVE_HTTP_REDIRECT` and `LEPTOS_SITE_ADDR` highly depend on where and how you are deploying the server.

@@ -1,7 +1,8 @@
 use crate::database::UserData;
 use crate::pages::get_user_data;
 use crate::websocket::{
-    use_websocket, WebSysWebSocketOptions, WebSysWebSocketReadyState, WebSysWebsocketReturn,
+    web_sys_websocket, WebSysWebSocketOptions, WebSysWebSocketReadyState,
+    WebSysWebsocketReturn,
 };
 use leptos::*;
 use web_sys::{CloseEvent, Event};
@@ -73,7 +74,7 @@ pub fn HomepageLoggedIn(user_data: UserData) -> impl IntoView {
 
     //log!(
     //    "{}",
-    //    dotenvy_macro::dotenv!("LEPTOS_WEBSOCKET_URL").to_string()
+    //    dotenvy_macro::dotenv!("WEBSOCKET_URL").to_string()
     //);
 
     let WebSysWebsocketReturn {
@@ -86,9 +87,8 @@ pub fn HomepageLoggedIn(user_data: UserData) -> impl IntoView {
         message_bytes,
         ..
         //ws not needed
-        //open not needed (manual is false)
-    } = use_websocket(
-        dotenvy_macro::dotenv!("LEPTOS_WEBSOCKET_URL").to_string(),
+    } = web_sys_websocket(
+        dotenvy_macro::dotenv!("WEBSOCKET_URL").to_string(),
         WebSysWebSocketOptions::default()
             .manual(true)
             .on_open(on_open_callback.clone())

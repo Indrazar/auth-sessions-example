@@ -190,6 +190,40 @@ pub async fn validate_token(untrusted_session: String) -> Option<uuid::Uuid> {
             return None;
         }
     };
+    validate_token_with_pool(untrusted_session, pool).await
+    /*let row = sqlx::query_as!(
+        ValidateSession,
+        r#"SELECT user_id AS "user_id: Uuid", expiry AS "expiry: DateTime<Utc>" FROM active_sesssions WHERE session_id = ?"#,
+        untrusted_session
+    )
+    .fetch_one(&pool)
+    .await;
+    let (true_uuid, expiry): (Uuid, DateTime<Utc>) = match row {
+        Ok(cred) => (cred.user_id, cred.expiry),
+        Err(e) => match e {
+            sqlx::Error::RowNotFound => {
+                return None;
+            }
+            _ => {
+                log::error!("validate_token: sqlx error: {e}");
+                return None;
+            }
+        },
+    };
+    //validate NOT expired
+    if expiry < Utc::now() {
+        drop_session(&untrusted_session).await;
+        None
+    } else {
+        Some(true_uuid)
+    }*/
+}
+
+#[cfg(feature = "ssr")]
+pub async fn validate_token_with_pool(
+    untrusted_session: String,
+    pool: SqlitePool,
+) -> Option<uuid::Uuid> {
     let row = sqlx::query_as!(
         ValidateSession,
         r#"SELECT user_id AS "user_id: Uuid", expiry AS "expiry: DateTime<Utc>" FROM active_sesssions WHERE session_id = ?"#,

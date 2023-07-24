@@ -26,11 +26,11 @@ http = "0.2"
 js-sys = "0.3"
 #jsonwebtoken = { version = "8.0", optional = true }
 lazy_static = "1"
-leptos = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", default-features = false}
-leptos_axum = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", default-features = false, optional = true }
-leptos_meta = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", optional = true }
-leptos_reactive = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups" }
-leptos_router = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", default-features = false }
+leptos = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", default-features = false} #rev = "9941259ae6fb3641d83369bc68d9a35b4a5b29ed"
+leptos_axum = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", default-features = false, optional = true } #rev = "9941259ae6fb3641d83369bc68d9a35b4a5b29ed"
+leptos_meta = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", optional = true } #rev = "9941259ae6fb3641d83369bc68d9a35b4a5b29ed"
+leptos_reactive = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups" } #rev = "9941259ae6fb3641d83369bc68d9a35b4a5b29ed"
+leptos_router = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", default-features = false } #rev = "9941259ae6fb3641d83369bc68d9a35b4a5b29ed"
 log = "0.4"
 mime = { version = "0.3", optional = true }
 secrecy = {version = "0.8.0", optional = true, features = ["serde"] }
@@ -155,8 +155,19 @@ lib-features = ["hydrate"]
 # Optional. Defaults to false.
 lib-default-features = false
 
+# cargo build --release profiles
+lib-profile-release = "wasm-release"
+bin-profile-release = "server-release"
+
 [profile.wasm-release]
 inherits = "release"
 opt-level = "z"
+lto = true
+codegen-units = 1
+
+[profile.server-release]
+inherits = "release"
+strip = true
+opt-level = 2
 lto = true
 codegen-units = 1
