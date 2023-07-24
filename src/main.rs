@@ -142,6 +142,7 @@ async fn leptos_routes_handler(
         (*options).clone(),
         move || {
             provide_context(pool.clone());
+            provide_context(options.clone());
         },
         || view! {<App/>},
     );

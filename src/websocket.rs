@@ -1,6 +1,9 @@
 use default_struct_builder::DefaultBuilder;
 use leptos::{leptos_dom::helpers::TimeoutHandle, *};
-use std::{fmt::Debug, rc::Rc};
+use std::{
+    fmt::{self, Debug},
+    rc::Rc,
+};
 use web_sys::{CloseEvent, Event, WebSocket as WebSysWebSocket};
 
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
@@ -68,6 +71,17 @@ pub enum WebSysWebSocketReadyState {
     Closed,
 }
 
+impl fmt::Display for WebSysWebSocketReadyState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            WebSysWebSocketReadyState::Connecting => write!(f, "Connecting"),
+            WebSysWebSocketReadyState::Open => write!(f, "Open"),
+            WebSysWebSocketReadyState::Closing => write!(f, "Closing"),
+            WebSysWebSocketReadyState::Closed => write!(f, "Closed"),
+        }
+    }
+}
+
 #[derive(DefaultBuilder)]
 pub struct WebSysWebSocketOptions {
     /// `WebSysWebSocket` connect callback.
@@ -115,7 +129,7 @@ where
     SendBytesFn: Fn(Vec<u8>) + Clone + 'static,
 {
     /// The current state of the `WebSysWebSocket` connection.
-    pub state: ReadSignal<WebSysWebSocketReadyState>,
+    pub ready_state: ReadSignal<WebSysWebSocketReadyState>,
     /// Latest text message received from `WebSysWebSocket`.
     pub message: ReadSignal<Option<String>>,
     /// Latest binary message received from `WebSysWebSocket`.
@@ -371,7 +385,7 @@ pub fn use_websocket(
     });
 
     WebSysWebsocketReturn {
-        state,
+        ready_state: state,
         message,
         message_bytes,
         ws: ws_ref.get_value(),
@@ -382,6 +396,11 @@ pub fn use_websocket(
     }
 }
 
+/// The handler for the HTTP request (this gets called when the HTTP GET lands at the start
+/// of websocket negotiation). After this completes, the actual switching from HTTP to
+/// websocket protocol will occur.
+/// This is the last point where we can extract TCP/IP metadata such as IP address of the client
+/// as well as things from HTTP headers such as user-agent of the browser etc.
 #[cfg(feature = "ssr")]
 pub async fn axum_ws_handler(
     ws: AxumWebSocketUpgrade,
@@ -393,7 +412,7 @@ pub async fn axum_ws_handler(
     } else {
         String::from("Unknown browser")
     };
-    println!("`{user_agent}` at {addr} connected.");
+    log::trace!("`{user_agent}` at {addr} connected.");
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
     ws.on_upgrade(move |socket| handle_socket(socket, addr))
@@ -404,9 +423,9 @@ pub async fn axum_ws_handler(
 async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr) {
     //send a ping (unsupported by some browsers) just to kick things off and get a response
     if socket.send(Message::Ping(vec![1, 2, 3])).await.is_ok() {
-        println!("Pinged {}...", who);
+        log::trace!("Pinged {}...", who);
     } else {
-        println!("Could not send ping {}!", who);
+        log::trace!("Could not send ping {}!", who);
         // no Error here since the only thing we can do is to close the connection.
         // If we can not send messages, there is no way to salvage the statemachine anyway.
         return;
@@ -422,7 +441,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr) {
                 return;
             }
         } else {
-            println!("client {who} abruptly disconnected");
+            log::trace!("client {who} abruptly disconnected");
             return;
         }
     }
@@ -437,7 +456,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr) {
             .await
             .is_err()
         {
-            println!("client {who} abruptly disconnected");
+            log::trace!("client {who} abruptly disconnected");
             return;
         }
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -463,7 +482,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr) {
             tokio::time::sleep(std::time::Duration::from_millis(300)).await;
         }
 
-        println!("Sending close to {who}...");
+        log::trace!("Sending close to {who}...");
         if let Err(e) = sender
             .send(Message::Close(Some(CloseFrame {
                 code: axum::extract::ws::close_code::NORMAL,
@@ -471,7 +490,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr) {
             })))
             .await
         {
-            println!("Could not send Close due to {}, probably it is ok?", e);
+            log::trace!("Could not send Close due to {}, probably it is ok?", e);
         }
         n_msg
     });
@@ -493,22 +512,22 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr) {
     tokio::select! {
         rv_a = (&mut send_task) => {
             match rv_a {
-                Ok(a) => println!("{} messages sent to {}", a, who),
-                Err(a) => println!("Error sending messages {:?}", a)
+                Ok(a) => log::trace!("{} messages sent to {}", a, who),
+                Err(a) => log::trace!("Error sending messages {:?}", a)
             }
             recv_task.abort();
         },
         rv_b = (&mut recv_task) => {
             match rv_b {
-                Ok(b) => println!("Received {} messages", b),
-                Err(b) => println!("Error receiving messages {:?}", b)
+                Ok(b) => log::trace!("Received {} messages", b),
+                Err(b) => log::trace!("Error receiving messages {:?}", b)
             }
             send_task.abort();
         }
     }
 
     // returning from the handler closes the websocket connection
-    println!("Websocket context {} destroyed", who);
+    log::trace!("Websocket context {} destroyed", who);
 }
 
 #[cfg(feature = "ssr")]
@@ -516,31 +535,33 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr) {
 fn process_message(msg: Message, who: SocketAddr) -> ControlFlow<(), ()> {
     match msg {
         Message::Text(t) => {
-            println!(">>> {} sent str: {:?}", who, t);
+            log::trace!(">>> {} sent str: {:?}", who, t);
         }
         Message::Binary(d) => {
-            println!(">>> {} sent {} bytes: {:?}", who, d.len(), d);
+            log::trace!(">>> {} sent {} bytes: {:?}", who, d.len(), d);
         }
         Message::Close(c) => {
             if let Some(cf) = c {
-                println!(
+                log::trace!(
                     ">>> {} sent close with code {} and reason `{}`",
-                    who, cf.code, cf.reason
+                    who,
+                    cf.code,
+                    cf.reason
                 );
             } else {
-                println!(">>> {} somehow sent close message without CloseFrame", who);
+                log::trace!(">>> {} somehow sent close message without CloseFrame", who);
             }
             return ControlFlow::Break(());
         }
 
         Message::Pong(v) => {
-            println!(">>> {} sent pong with {:?}", who, v);
+            log::trace!(">>> {} sent pong with {:?}", who, v);
         }
         // You should never need to manually handle Message::Ping, as axum's websocket library
         // will do so for you automagically by replying with Pong and copying the v according to
         // spec. But if you need the contents of the pings you can see them here.
         Message::Ping(v) => {
-            println!(">>> {} sent ping with {:?}", who, v);
+            log::trace!(">>> {} sent ping with {:?}", who, v);
         }
     }
     ControlFlow::Continue(())

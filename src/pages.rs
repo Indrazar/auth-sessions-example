@@ -6,7 +6,8 @@ use leptos_router::*;
 mod components;
 use components::{csrf::CSRFField, logheader::LogHeader};
 mod homepage;
-use homepage::*;
+use crate::database::UserData;
+use homepage::HomePage;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::{validate_session, issue_session_cookie, destroy_session};
@@ -23,8 +24,6 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use leptos_axum::redirect;
     use secrecy::SecretString;
 }}
-
-use crate::database::UserData;
 
 pub mod error_template;
 
@@ -56,7 +55,7 @@ fn set_headers() {
         axum::http::header::CONTENT_SECURITY_POLICY,
         HeaderValue::from_static(
             // loading WASM requires 'unsafe-inline' 'unsafe-eval'
-            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; connect-src 'self' ws://127.0.0.1:3001/",
+            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; connect-src 'self' ws://127.0.0.1:3001/ ws://127.0.0.1:3000/",
         ), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
     );
     #[cfg(not(debug_assertions))]
@@ -64,7 +63,7 @@ fn set_headers() {
         axum::http::header::CONTENT_SECURITY_POLICY,
         HeaderValue::from_static(
             // loading WASM requires 'unsafe-inline' 'unsafe-eval'
-            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'",
+            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; connect-src 'self' ws://127.0.0.1:3000/",
         ), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
     );
     response.insert_header(
