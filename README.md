@@ -66,13 +66,8 @@ You will need a self signed cert for TLS for Dev purposes. The command when usin
 openssl req -newkey rsa:2048 -nodes -keyout self_signed_certs/key.pem -x509 -days 365 -out self_signed_certs/certificate.pem
 ```
 
-## Environment and Database Setup
-1. First copy `.env.example` into `.env` and make sure the settings are correct. (Important for next step).
-2. Generate a new database and apply the included migration.
-```
-sqlx database create
-sqlx migrate run
-```
+## Environment Setup
+Copy `.env.example` into `.env` and make sure the settings are correct.
 
 ## Running in dev mode
 

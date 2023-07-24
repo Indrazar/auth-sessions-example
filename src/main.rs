@@ -106,6 +106,11 @@ async fn main() {
         .await
         .expect("Could not make pool.");
 
+    sqlx::migrate!()
+        .run(&pool_options)
+        .await
+        .expect("could not run SQLx migrations");
+
     log::debug!("\n\n\nServer process starting");
     log::debug!("Server {:#?}", leptos_options);
     log::debug!("Server registering functions");
