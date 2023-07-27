@@ -237,7 +237,7 @@ pub fn web_sys_websocket(
                 // onopen handler
                 {
                     let onopen_closure = Closure::wrap(Box::new(move |e: Event| {
-                        if unmounted_ref.get_value() {
+                        if unmounted_ref.try_get_value().unwrap_or(true) {
                             return;
                         }
 
@@ -254,7 +254,7 @@ pub fn web_sys_websocket(
                 // onmessage handler
                 {
                     let onmessage_closure = Closure::wrap(Box::new(move |e: MessageEvent| {
-                        if unmounted_ref.get_value() {
+                        if unmounted_ref.try_get_value().unwrap_or(true) {
                             return;
                         }
 
@@ -290,7 +290,7 @@ pub fn web_sys_websocket(
                 // onerror handler
                 {
                     let onerror_closure = Closure::wrap(Box::new(move |e: Event| {
-                        if unmounted_ref.get_value() {
+                        if unmounted_ref.try_get_value().unwrap_or(true) {
                             return;
                         }
 
@@ -309,7 +309,7 @@ pub fn web_sys_websocket(
                 // onclose handler
                 {
                     let onclose_closure = Closure::wrap(Box::new(move |e: CloseEvent| {
-                        if unmounted_ref.get_value() {
+                        if unmounted_ref.try_get_value().unwrap_or(true) {
                             return;
                         }
 
@@ -336,7 +336,7 @@ pub fn web_sys_websocket(
     let send = {
         Box::new(move |data: String| {
             if state.get() == WebSysWebSocketReadyState::Open {
-                if let Some(web_socket) = ws_ref.get_value() {
+                if let Some(Some(web_socket)) = ws_ref.try_get_value() {
                     let _ = web_socket.send_with_str(&data);
                 }
             }
@@ -346,7 +346,7 @@ pub fn web_sys_websocket(
     // Send bytes
     let send_bytes = move |data: Vec<u8>| {
         if state.get() == WebSysWebSocketReadyState::Open {
-            if let Some(web_socket) = ws_ref.get_value() {
+            if let Some(Some(web_socket)) = ws_ref.try_get_value() {
                 let _ = web_socket.send_with_u8_array(&data);
             }
         }
@@ -355,7 +355,7 @@ pub fn web_sys_websocket(
     // Open connection
     let open = move || {
         reconnect_times_ref.set_value(0);
-        if let Some(connect) = connect_ref.get_value() {
+        if let Some(Some(connect)) = connect_ref.try_get_value() {
             connect();
         }
     };
@@ -366,8 +366,10 @@ pub fn web_sys_websocket(
 
         move || {
             reconnect_times_ref.set_value(reconnect_limit);
-            if let Some(web_socket) = ws_ref.get_value() {
+            if let Some(Some(web_socket)) = ws_ref.try_get_value() {
                 let _ = web_socket.close();
+            } else {
+                log!("could not aquire web_socket from ws_ref, it should be present");
             }
         }
     };
@@ -426,7 +428,8 @@ pub async fn axum_ws_handler(
     // validate origin header
     if origin != site_url {
         log::trace!(
-            "`{user_agent}` from {addr} with origin {origin} websocket rejected due to invalid origin."
+            "`{user_agent}` from {addr} with origin {origin} websocket rejected due to \
+             invalid origin."
         );
         return (
             StatusCode::FORBIDDEN,
@@ -438,7 +441,8 @@ pub async fn axum_ws_handler(
         Some(TypedHeader(cookies)) => cookies,
         None => {
             log::trace!(
-                "`{user_agent}` from {addr} wtih no cookies websocket rejected due to no cookies."
+                "`{user_agent}` from {addr} wtih no cookies websocket rejected due to no \
+                 cookies."
             );
             return (StatusCode::UNAUTHORIZED, "please sign in first").into_response();
         }
@@ -449,7 +453,10 @@ pub async fn axum_ws_handler(
         Some(id) => id,
         None => {
             log::trace!(
-            "`{user_agent}` from {addr} wtih cookies {:#?} websocket rejected due to invalid session.", cookies);
+                "`{user_agent}` from {addr} wtih cookies {:#?} websocket rejected due to \
+                 invalid session.",
+                cookies
+            );
             return (StatusCode::UNAUTHORIZED, "please sign in first").into_response();
         }
     };

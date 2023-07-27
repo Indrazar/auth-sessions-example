@@ -1,11 +1,13 @@
-use crate::database::UserData;
-use crate::pages::get_user_data;
-use crate::websocket::{
-    web_sys_websocket, WebSysWebSocketOptions, WebSysWebSocketReadyState,
-    WebSysWebsocketReturn,
+use crate::{
+    database::UserData,
+    pages::get_user_data,
+    websocket::{
+        web_sys_websocket, WebSysWebSocketOptions, WebSysWebSocketReadyState,
+        WebSysWebsocketReturn,
+    },
 };
 use leptos::*;
-use web_sys::{CloseEvent, Event};
+use web_sys::{CloseEvent, Event}; //WebSocket as WebSysWebSocket};
 
 #[component]
 pub fn HomePage() -> impl IntoView {
@@ -22,11 +24,11 @@ pub fn HomePage() -> impl IntoView {
                     <span>{format!("error: {}", e)}</span>
                 }.into_view(),
                 Ok(None) => view! {
-                    <></>
+                    ""
                 }.into_view(),
                 Ok(Some(user_data)) => view! {
                     <div class="main-text">
-                        <HomepageLoggedIn user_data=user_data/>
+                        <HomepageLoggedIn user_data/>
                     </div>
                 }.into_view(),
             })

@@ -8,6 +8,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 /// This component forces SSR to resolve in an async route.
 /// This will add a hidden input field to any ActionForm which can be used
 /// to mitigate CSRF attacks using a __Host-csrf cookie
+#[allow(unused_braces)]
 #[component]
 pub fn CSRFField() -> impl IntoView {
     let csrf_action = create_server_action::<IssueCSRF>();
@@ -20,13 +21,19 @@ pub fn CSRFField() -> impl IntoView {
     );
 
     view! {
-        <Suspense fallback={move || view! { <>"Loading..."</> }}>
+        <Suspense fallback=move || view! { "Loading..." }>
             {move || {
                 csrf_resource.read().map(|n| match n {
-                    Err(_) => view! { <>"Page Load Failed. Please reload the page or try again later."</>},
-                    Ok(csrf) => view! { <><input type="hidden" name="csrf" value=csrf/></>},
-                })
-            }}
+                    Err(e) => view! {
+                        { format!("Page Load Failed: {e}. Please reload the page or try again later.") }
+                    }.into_view(),
+                    Ok(csrf_hash) => {
+                        view! {
+                            <input type="hidden" name="csrf" value=csrf_hash/>}
+                        }.into_view()
+                    })
+                }
+            }
         </Suspense>
     }
 }

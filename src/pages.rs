@@ -77,7 +77,7 @@ pub fn App() -> impl IntoView {
     let login = create_server_action::<Login>();
     let logout = create_server_action::<Logout>();
     let signup = create_server_action::<Signup>();
-
+    //let (is_routing, set_is_routing) = create_signal(false);
     let userdata = create_resource(
         move || {
             (
@@ -88,6 +88,7 @@ pub fn App() -> impl IntoView {
         },
         move |_| get_user_data(),
     );
+
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
     //let nonce = "";
@@ -108,7 +109,7 @@ pub fn App() -> impl IntoView {
         <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
 
         // content for this app
-        <Router>
+        <Router> //set_is_routing>
             <header>
                 <A href="/"><h1>"Auth-Sessions-Example"</h1></A>
                 <h2>"A Letpos HTTPS Auth Example"</h2>
@@ -120,16 +121,20 @@ pub fn App() -> impl IntoView {
                     userdata.read().map(|user| match user {
                         Err(e) => view! {
                             <A href="/signup">"Signup"</A>", "
-                            <A href="/login">"Login"</A>", "
+                            <A href="/login">"Login"</A>
+                            <br />
                             <span>{format!("Login error: {}", e)}</span>
                         }.into_view(),
                         Ok(None) => view! {
                             <A href="/signup">"Signup"</A>", "
-                            <A href="/login">"Login"</A>", "
-                            <span>"Logged out."</span>
+                            <A href="/login">"Login"</A>
+                            <br />
+                            <span>"Logged out"</span>
                         }.into_view(),
                         Ok(Some(user)) => view! {
-                            <A href="/settings">"Settings"</A>", "
+                            <A href="/">"Home"</A>", "
+                            <A href="/settings">"Settings"</A>
+                            <br />
                             <span>{format!("Logged in as: {}", user.display_name)}</span>
                         }.into_view()
                     })
@@ -139,11 +144,11 @@ pub fn App() -> impl IntoView {
             <div/>
             <main>
             <Routes>
-                <Route path="" view=move || view! {<HomePage/> }/> //Route
-                <Route path="signup" view=move || view! {
-                    <Signup action=signup/>
+                <Route path="" view=move || view! {<HomePage /> }/> //Route
+                <Route path="signup" ssr=SsrMode::Async view=move || view! {
+                    <Signup action=signup />
                 }/>
-                <Route path="login" view=move || view! {
+                <Route path="login" ssr=SsrMode::Async view=move || view! {
                     <Login action=login />
                 }/>
                 <Route path="settings" view=move || view! {
@@ -170,6 +175,16 @@ pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView 
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
+    let (login_result, set_login_result) = create_signal(" ".to_string());
+
+    create_effect(move |_| {
+        action.version().get();
+        match action.value().get() {
+            Some(Err(ServerFnError::ServerError(e))) => set_login_result.set(e.to_string()),
+            _ => return,
+        };
+    });
+
     view! {
         <ActionForm action=action>
                 <CSRFField/>
@@ -182,6 +197,9 @@ pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView 
                     <input type="password" name="password" required value/>
                 </p>
                     <input type="submit" disabled=submit_disabled value="Login"/>
+                <p>
+                    {login_result}
+                </p>
             </ActionForm>
         <p><a href="/">"Return to landing page"</a></p>
     }

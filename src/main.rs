@@ -10,6 +10,7 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
         fileserv::file_and_error_handler,
         pages::App,
         websocket::axum_ws_handler,
+        security::{gen_128bit_base64, ServerSessionData},
     };
     use axum::{
         extract::{Extension, Host, Path, ConnectInfo},
@@ -115,6 +116,10 @@ async fn main() {
     log::debug!("Server {:#?}", leptos_options);
     log::debug!("Server registering functions");
 
+    let server_session_data = ServerSessionData {
+        csrf_server: gen_128bit_base64(),
+    };
+
     // build our application with a route
     let app = Router::new()
         .route("/api/*fn_name", post(api_fn_handler))
@@ -122,6 +127,7 @@ async fn main() {
         .leptos_routes_with_handler(routes, get(leptos_routes_handler))
         .fallback(file_and_error_handler)
         .layer(Extension(Arc::new(leptos_options.clone())))
+        .layer(Extension(server_session_data))
         .layer(Extension(pool_options))
         .layer(CompressionLayer::new())
         .with_state(leptos_options);
@@ -139,14 +145,16 @@ async fn main() {
 
 #[cfg(feature = "ssr")]
 async fn leptos_routes_handler(
+    Extension(server_session_data): Extension<ServerSessionData>,
     Extension(pool): Extension<SqlitePool>,
     Extension(options): Extension<Arc<LeptosOptions>>,
     req: Request<AxumBody>,
 ) -> Response {
-    let handler = leptos_axum::render_app_to_stream_with_context(
+    let handler = leptos_axum::render_app_async_with_context(
         (*options).clone(),
         move || {
             provide_context(pool.clone());
+            provide_context(server_session_data.clone());
             provide_context(options.clone());
         },
         || view! {<App/>},
@@ -156,6 +164,7 @@ async fn leptos_routes_handler(
 
 #[cfg(feature = "ssr")]
 async fn api_fn_handler(
+    Extension(server_session_data): Extension<ServerSessionData>,
     Extension(pool): Extension<SqlitePool>,
     Extension(connect_info): Extension<ConnectInfo<SocketAddr>>,
     path: Path<String>,
@@ -174,6 +183,7 @@ async fn api_fn_handler(
         query,
         move || {
             provide_context(pool.clone());
+            provide_context(server_session_data.clone());
             provide_context(connect_info)
         },
         request,

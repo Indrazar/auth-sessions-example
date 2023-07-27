@@ -20,3 +20,6 @@ self_signed_certs/
 
 # environment vars
 .env
+
+# local database
+auth-sessions-example.db

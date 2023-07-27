@@ -180,6 +180,7 @@ dependencies = [
  "axum",
  "axum-server",
  "base64 0.21.2",
+ "blake2",
  "broadcaster",
  "cfg-if 1.0.0",
  "chrono",
@@ -190,7 +191,7 @@ dependencies = [
  "dotenvy_macro",
  "email_address",
  "futures",
- "gloo-net 0.3.0",
+ "gloo-net 0.3.1",
  "http",
  "js-sys",
  "lazy_static",
@@ -615,9 +616,9 @@ dependencies = [
 
 [[package]]
 name = "core-foundation-sys"
-version = "0.8.5"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a385f5d34e5eff161df2369056a3fd194fcabd8a64ce0eed02de09fcb3203434"
+checksum = "e496a50fda8aacccc86d7529e2c1e0892dbd0f898a6b5645b5561b89c3210efa"
 
 [[package]]
 name = "cpufeatures"
@@ -1123,9 +1124,9 @@ dependencies = [
 
 [[package]]
 name = "gloo-net"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3000ef231a67d5bfee6b35f2c0f6f5c8d45b3381ef5bbbea603690ec4e539762"
+checksum = "a66b4e3c7d9ed8d315fd6b97c8b1f74a7c6ecbbc2320e65ae7ed38b7068cc620"
 dependencies = [
  "futures-channel",
  "futures-core",
@@ -1506,8 +1507,8 @@ dependencies = [
 
 [[package]]
 name = "leptos"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "cfg-if 1.0.0",
  "leptos_config",
@@ -1522,8 +1523,8 @@ dependencies = [
 
 [[package]]
 name = "leptos_axum"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "axum",
  "futures",
@@ -1543,8 +1544,8 @@ dependencies = [
 
 [[package]]
 name = "leptos_config"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "config",
  "regex",
@@ -1555,8 +1556,8 @@ dependencies = [
 
 [[package]]
 name = "leptos_dom"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "async-recursion",
  "cfg-if 1.0.0",
@@ -1584,8 +1585,8 @@ dependencies = [
 
 [[package]]
 name = "leptos_hot_reload"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "anyhow",
  "camino",
@@ -1601,8 +1602,8 @@ dependencies = [
 
 [[package]]
 name = "leptos_integration_utils"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "futures",
  "leptos",
@@ -1614,8 +1615,8 @@ dependencies = [
 
 [[package]]
 name = "leptos_macro"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "attribute-derive",
  "cfg-if 1.0.0",
@@ -1636,8 +1637,8 @@ dependencies = [
 
 [[package]]
 name = "leptos_meta"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "cfg-if 1.0.0",
  "indexmap 2.0.0",
@@ -1649,8 +1650,8 @@ dependencies = [
 
 [[package]]
 name = "leptos_reactive"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "base64 0.21.2",
  "cfg-if 1.0.0",
@@ -1673,8 +1674,8 @@ dependencies = [
 
 [[package]]
 name = "leptos_router"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "cached",
  "cfg-if 1.0.0",
@@ -1702,11 +1703,12 @@ dependencies = [
 
 [[package]]
 name = "leptos_server"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "inventory",
  "lazy_static",
+ "leptos_macro",
  "leptos_reactive",
  "serde",
  "server_fn",
@@ -2485,9 +2487,9 @@ dependencies = [
 
 [[package]]
 name = "rustls-webpki"
-version = "0.101.1"
+version = "0.101.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15f36a6828982f422756984e47912a7a51dcbc2a197aa791158f8ca61cd8204e"
+checksum = "513722fd73ad80a71f72b61009ea1b584bcfa1483ca93949c8f290298837fa59"
 dependencies = [
  "ring",
  "untrusted",
@@ -2548,9 +2550,9 @@ checksum = "4c309e515543e67811222dbc9e3dd7e1056279b782e1dacffe4242b718734fb6"
 
 [[package]]
 name = "serde"
-version = "1.0.175"
+version = "1.0.176"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d25439cd7397d044e2748a6fe2432b5e85db703d6d097bd014b3c0ad1ebff0b"
+checksum = "76dc28c9523c5d70816e393136b86d48909cfb27cecaa902d338c19ed47164dc"
 dependencies = [
  "serde_derive",
 ]
@@ -2568,9 +2570,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.175"
+version = "1.0.176"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b23f7ade6f110613c0d63858ddb8b94c1041f550eab58a16b371bdf2c9c80ab4"
+checksum = "a4e7b8c5dc823e3b90651ff1d3808419cd14e5ad76de04feaf37da114e7a306f"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2579,9 +2581,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.103"
+version = "1.0.104"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d03b412469450d4404fe8499a268edd7f8b79fecb074b0d812ad64ca21f4031b"
+checksum = "076066c5f1078eac5b722a31827a8832fe108bed65dfa75e233c89f8206e976c"
 dependencies = [
  "itoa",
  "ryu",
@@ -2611,9 +2613,9 @@ dependencies = [
 
 [[package]]
 name = "serde_test"
-version = "1.0.175"
+version = "1.0.176"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29baf0f77ca9ad9c6ed46e1b408b5e0f30b5184bcd66884e7f6d36bd7a65a8a4"
+checksum = "5a2f49ace1498612d14f7e0b8245519584db8299541dfe31a06374a828d620ab"
 dependencies = [
  "serde",
 ]
@@ -2632,8 +2634,8 @@ dependencies = [
 
 [[package]]
 name = "server_fn"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "ciborium",
  "const_format",
@@ -2656,8 +2658,8 @@ dependencies = [
 
 [[package]]
 name = "server_fn_macro"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "const_format",
  "proc-macro-error",
@@ -2670,8 +2672,8 @@ dependencies = [
 
 [[package]]
 name = "server_fn_macro_default"
-version = "0.4.5"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#90bb0ef8befdf6569451e8ac8bb9a5952829306c"
+version = "0.5.0-alpha"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#270be01c3ed3fc24317997e4893d659a203b7ab3"
 dependencies = [
  "server_fn_macro",
  "syn 2.0.27",

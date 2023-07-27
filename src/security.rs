@@ -12,6 +12,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
         header::{COOKIE, SET_COOKIE},
         HeaderValue,
     };
+    use blake2::{Blake2s256, Digest};
     use email_address::EmailAddress;
     use leptos::*;
     use leptos_axum::RequestParts;
@@ -21,22 +22,34 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 }}
 
 #[cfg(feature = "ssr")]
+#[derive(Clone)]
+pub struct ServerSessionData {
+    //eventually update this to an Arc<RwLock<String>>
+    //for now it's not mutable so this should be fine
+    pub csrf_server: String,
+}
+
+#[cfg(feature = "ssr")]
 pub fn generate_csrf() -> String {
     let response = match use_context::<leptos_axum::ResponseOptions>() {
         Some(ro) => ro,
         None => return String::default(),
     };
-    let csrf_string = gen_128bit_base64();
+    let csrf_cookie = gen_128bit_base64();
+    let csrf_server = match use_context::<ServerSessionData>() {
+        Some(data) => data.csrf_server,
+        None => return String::default(),
+    };
     response.append_header(
         SET_COOKIE,
         HeaderValue::from_str(
-            format!("__Host-csrf={csrf_string}; Secure; HttpOnly; SameSite=Lax; Path=/")
+            format!("__Host-csrf={csrf_cookie}; Secure; SameSite=Lax; HttpOnly; Path=/")
                 .as_str(),
         )
         .expect("to create header value"),
     );
     log::trace!("provided a csrf cookie");
-    csrf_string
+    gen_easy_hash(csrf_cookie, csrf_server)
 }
 
 #[cfg(feature = "ssr")]
@@ -48,6 +61,10 @@ pub enum CsrfError {
 
 #[cfg(feature = "ssr")]
 pub fn validate_csrf(req: RequestParts, csrf_token: String) -> Result<(), CsrfError> {
+    let csrf_server = match use_context::<ServerSessionData>() {
+        Some(data) => data.csrf_server,
+        None => return Err(CsrfError::NoMatchingCookie),
+    };
     let mut only_one = 0;
     let mut cookie_value = String::default();
     for headercookie in req.headers.get_all(COOKIE).iter() {
@@ -66,7 +83,7 @@ pub fn validate_csrf(req: RequestParts, csrf_token: String) -> Result<(), CsrfEr
             Err(_) => continue,
         }
     }
-    if cookie_value.eq(&csrf_token) {
+    if verify_easy_hash(cookie_value, csrf_server, csrf_token) {
         log::trace!("csrf cookie+token was validated");
         Ok(())
     } else {
@@ -227,7 +244,8 @@ pub async fn validate_registration(
     //unique_cred_check(UniqueCredential::Email(email)).await?;
     let password_hash = gen_hash(password)?;
     log::trace!(
-        "signup: successful registration for username: {username}, display_name: {display_name}"
+        "signup: successful registration for username: {username}, display_name: \
+         {display_name}"
     );
     let id = register_user(username, display_name, email, password_hash).await?;
     log::trace!("signup: db write succeeded for new user");
@@ -351,6 +369,35 @@ pub async fn validate_credentials(
 }
 
 #[cfg(feature = "ssr")]
+// hash that does not use salt and not for passwords
+fn gen_easy_hash(input1: String, input2: String) -> String {
+    // forever TODO: watch for updates regarding blake2
+    // <https://github.com/RustCrypto/hashes#supported-algorithms>
+    let mut hasher = Blake2s256::new();
+    hasher.update(format!("{input1}!{input2}").as_bytes());
+    let res = hasher.finalize();
+    const CUSTOM_ENGINE: base64::engine::GeneralPurpose = base64::engine::GeneralPurpose::new(
+        &base64::alphabet::URL_SAFE,
+        base64::engine::general_purpose::NO_PAD,
+    );
+    base64::Engine::encode(&CUSTOM_ENGINE, res)
+}
+
+#[cfg(feature = "ssr")]
+// hash that does not use salt and not for passwords
+fn verify_easy_hash(input1: String, input2: String, expected_result: String) -> bool {
+    let mut hasher = Blake2s256::new();
+    hasher.update(format!("{input1}!{input2}").as_bytes());
+    let res = hasher.finalize();
+    const CUSTOM_ENGINE: base64::engine::GeneralPurpose = base64::engine::GeneralPurpose::new(
+        &base64::alphabet::URL_SAFE,
+        base64::engine::general_purpose::NO_PAD,
+    );
+
+    expected_result.eq(&base64::Engine::encode(&CUSTOM_ENGINE, res))
+}
+
+#[cfg(feature = "ssr")]
 fn gen_hash(input: SecretString) -> Result<String, ServerFnError> {
     // forever TODO: improve salt and complextity of hashing as computers get better
     // and as people buy more PS5s and shove them in underwater hashing factories
@@ -393,8 +440,7 @@ fn verify_hash(
 }
 
 #[cfg(feature = "ssr")]
-#[allow(unused_must_use)]
-fn spin_hash(untrusted_password: SecretString) {
+fn spin_hash(untrusted_password: SecretString) -> Result<(), ValidateHashError> {
     // forever TODO: update this hash as we improve the gen_hash
     // notes about this hash: it is not a real hash, just to waste time using the same algo.
     // This hash is NOT a secret. This function returns NOTHING, only wastes time.
@@ -406,5 +452,5 @@ fn spin_hash(untrusted_password: SecretString) {
 
     Argon2::default()
         .verify_password(untrusted_password.expose_secret().as_bytes(), &static_hash)
-        .map_err(ValidateHashError::VerifyError);
+        .map_err(ValidateHashError::VerifyError)
 }
