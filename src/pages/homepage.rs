@@ -104,7 +104,7 @@ pub fn HomepageLoggedIn(user_data: UserData) -> impl IntoView {
         open();
     };
     let close_connection = move |_| {
-        close();
+        close(4000, "user requested close".to_string());
     };
 
     let send_message = move |_| {

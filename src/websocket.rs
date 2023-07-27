@@ -125,7 +125,7 @@ impl Default for WebSysWebSocketOptions {
 pub struct WebSysWebsocketReturn<OpenFn, CloseFn, SendFn, SendBytesFn>
 where
     OpenFn: Fn() + Clone + 'static,
-    CloseFn: Fn() + Clone + 'static,
+    CloseFn: Fn(u16, String) + Clone + 'static,
     SendFn: Fn(String) + Clone + 'static,
     SendBytesFn: Fn(Vec<u8>) + Clone + 'static,
 {
@@ -152,7 +152,7 @@ pub fn web_sys_websocket(
     options: WebSysWebSocketOptions,
 ) -> WebSysWebsocketReturn<
     impl Fn() + Clone + 'static,
-    impl Fn() + Clone + 'static,
+    impl Fn(u16, String) + Clone + 'static,
     impl Fn(String) + Clone + 'static,
     impl Fn(Vec<u8>) + Clone,
 > {
@@ -360,14 +360,14 @@ pub fn web_sys_websocket(
         }
     };
 
-    // Close connection
+    // Close connection with code and reason
     let close = {
         reconnect_timer_ref.set_value(None);
 
-        move || {
+        move |code, reason: String| {
             reconnect_times_ref.set_value(reconnect_limit);
             if let Some(web_socket) = ws_ref.get_value() {
-                let _ = web_socket.close();
+                let _ = web_socket.close_with_code_and_reason(code, reason.as_str());
             }
         }
     };
@@ -382,7 +382,8 @@ pub fn web_sys_websocket(
     // clean up (unmount)
     on_cleanup(move || {
         unmounted_ref.set_value(true);
-        close();
+        close(4001, "user navigated off websocket page".to_string());
+        log!("leaving websocket pages")
     });
 
     WebSysWebsocketReturn {
@@ -527,6 +528,9 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
 
             tokio::time::sleep(std::time::Duration::from_millis(100)).await;
         }
+        loop {
+            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+        }
 
         log::trace!("Sending close to {who}...");
         if let Err(e) = sender
@@ -561,14 +565,14 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
                 Ok(a) => log::trace!("{} messages sent to {}", a, who),
                 Err(a) => log::trace!("Error sending messages {:?}", a)
             }
-            recv_task.abort();
+            //recv_task.abort();
         },
         rv_b = (&mut recv_task) => {
             match rv_b {
                 Ok(b) => log::trace!("Received {} messages", b),
                 Err(b) => log::trace!("Error receiving messages {:?}", b)
             }
-            send_task.abort();
+            //send_task.abort();
         }
     }
 
@@ -579,6 +583,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
 #[cfg(feature = "ssr")]
 /// helper to print contents of messages to stdout. Has special treatment for Close.
 fn process_message(msg: Message, who: SocketAddr) -> ControlFlow<(), ()> {
+    log::trace!("in process_message with msg: {:?}", msg);
     match msg {
         Message::Text(t) => {
             log::trace!(">>> {} sent str: {:?}", who, t);
