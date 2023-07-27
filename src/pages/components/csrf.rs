@@ -15,7 +15,7 @@ pub fn CSRFField() -> impl IntoView {
     let csrf_resource = create_resource(
         move || (csrf_action.version().get()),
         move |_| {
-            log::trace!("CSRF retriever running fetcher");
+            //log::trace!("CSRF retriever running fetcher");
             issue_csrf()
         },
     );

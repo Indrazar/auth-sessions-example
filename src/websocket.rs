@@ -336,7 +336,7 @@ pub fn web_sys_websocket(
     let send = {
         Box::new(move |data: String| {
             if state.get() == WebSysWebSocketReadyState::Open {
-                if let Some(Some(web_socket)) = ws_ref.try_get_value() {
+                if let Some(web_socket) = ws_ref.get_value() {
                     let _ = web_socket.send_with_str(&data);
                 }
             }
@@ -346,7 +346,7 @@ pub fn web_sys_websocket(
     // Send bytes
     let send_bytes = move |data: Vec<u8>| {
         if state.get() == WebSysWebSocketReadyState::Open {
-            if let Some(Some(web_socket)) = ws_ref.try_get_value() {
+            if let Some(web_socket) = ws_ref.get_value() {
                 let _ = web_socket.send_with_u8_array(&data);
             }
         }
@@ -355,7 +355,7 @@ pub fn web_sys_websocket(
     // Open connection
     let open = move || {
         reconnect_times_ref.set_value(0);
-        if let Some(Some(connect)) = connect_ref.try_get_value() {
+        if let Some(connect) = connect_ref.get_value() {
             connect();
         }
     };
@@ -366,10 +366,8 @@ pub fn web_sys_websocket(
 
         move || {
             reconnect_times_ref.set_value(reconnect_limit);
-            if let Some(Some(web_socket)) = ws_ref.try_get_value() {
+            if let Some(web_socket) = ws_ref.get_value() {
                 let _ = web_socket.close();
-            } else {
-                log!("could not aquire web_socket from ws_ref, it should be present");
             }
         }
     };
