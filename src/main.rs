@@ -69,7 +69,7 @@ async fn main() {
         // when in DEV mode suppress most logs from other crates, show all logs from this crate
         leptos_config::Env::DEV => simple_logger::SimpleLogger::new()
             .with_level(log::LevelFilter::Warn)
-            .with_module_level("auth_sessions_example", log::LevelFilter::Trace)
+            .with_module_level(leptos_options.output_name.as_str(), log::LevelFilter::Trace)
             .init()
             .expect("couldn't initialize logging"),
     };

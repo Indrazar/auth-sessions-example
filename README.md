@@ -1,5 +1,5 @@
 # Notes about Spam
-Opening this to the greater internet is likey a VERY BAD idea unless you at a minimum implement recaptcha (just an example, not a recommendation) and/or other bot mitigations.
+Opening this to the greater internet is likey a VERY BAD idea unless you implement bot mitigations.
 The bots will arrive and they will sell you uggs.
 
 # Leptos Auth-Sessions-Example
@@ -69,6 +69,14 @@ openssl req -newkey rsa:2048 -nodes -keyout self_signed_certs/key.pem -x509 -day
 ## Environment Setup
 
 Copy `.env.example` into `.env` and make sure the settings are correct.
+
+### Optional Setup
+
+To create the database without running the binary:
+```
+sqlx database create
+sqlx migrate run
+```
 
 ## Running in dev mode
 

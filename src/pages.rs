@@ -108,7 +108,6 @@ pub fn App() -> impl IntoView {
         // sets the document title
         <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
 
-        // content for this app
         <Router> //set_is_routing>
             <header>
                 <A href="/"><h1>"Auth-Sessions-Example"</h1></A>
