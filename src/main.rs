@@ -112,9 +112,8 @@ async fn main() {
         .await
         .expect("could not run SQLx migrations");
 
-    log::debug!("\n\n\nServer process starting");
-    log::debug!("Server {:#?}", leptos_options);
-    log::debug!("Server registering functions");
+    log::info!("Server process starting");
+    log::info!("Server {:#?}", leptos_options);
 
     let server_session_data = ServerSessionData {
         csrf_server: gen_128bit_base64(),
@@ -172,8 +171,8 @@ async fn api_fn_handler(
     query: axum::extract::RawQuery,
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
-    log::trace!(
-        "api_fn_handler: path: {:#?}, connect_info: {:#?}",
+    log::debug!(
+        "api_fn_handler: path: {:?}, connect_info: {:?}",
         path,
         connect_info
     );
@@ -218,14 +217,14 @@ async fn redirect_http_to_https(ports: Ports) {
         match make_https(host, uri, ports) {
             Ok(uri) => Ok(Redirect::temporary(&uri.to_string())),
             Err(error) => {
-                log::warn!("error: {:#?}, failed to convert URI to HTTPS", error);
+                log::error!("error: {:#?}, failed to convert URI to HTTPS", error);
                 Err(StatusCode::BAD_REQUEST)
             }
         }
     };
 
     let addr = SocketAddr::from(([127, 0, 0, 1], ports.http));
-    log::debug!("http redirect listening on {}", addr);
+    log::info!("http redirect listening on {}", addr);
 
     axum::Server::bind(&addr)
         .serve(redirect.into_make_service())

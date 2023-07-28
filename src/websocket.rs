@@ -13,14 +13,14 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     use axum::{
         extract::{
             Extension,
-            ws::{CloseFrame, Message, WebSocket as AxumWebSocket, WebSocketUpgrade as AxumWebSocketUpgrade},
+            ws::{Message, WebSocket as AxumWebSocket, WebSocketUpgrade as AxumWebSocketUpgrade},
             TypedHeader,
             connect_info::ConnectInfo,
         },
         response::IntoResponse,
         http::StatusCode,
     };
-    use std::{borrow::Cow, ops::ControlFlow, net::SocketAddr, sync::Arc};
+    use std::{ops::ControlFlow, net::SocketAddr, sync::Arc};
     //allows to split the websocket stream into separate TX and RX branches
     use futures::{sink::SinkExt, stream::StreamExt};
     //needed to extract the pool from the axum request
@@ -383,7 +383,7 @@ pub fn web_sys_websocket(
     on_cleanup(move || {
         unmounted_ref.set_value(true);
         close(4001, "user navigated off websocket page".to_string());
-        log!("leaving websocket pages")
+        //log!("leaving websocket pages")
     });
 
     WebSysWebsocketReturn {
@@ -426,7 +426,7 @@ pub async fn axum_ws_handler(
     let site_url = format!("https://{}", (*options).site_addr.to_string());
     // validate origin header
     if origin != site_url {
-        log::trace!(
+        log::debug!(
             "`{user_agent}` from {addr} with origin {origin} websocket rejected due to \
              invalid origin."
         );
@@ -439,7 +439,7 @@ pub async fn axum_ws_handler(
     let cookies = match header_cookies {
         Some(TypedHeader(cookies)) => cookies,
         None => {
-            log::trace!(
+            log::debug!(
                 "`{user_agent}` from {addr} wtih no cookies websocket rejected due to no \
                  cookies."
             );
@@ -451,7 +451,7 @@ pub async fn axum_ws_handler(
     let user_uuid = match validate_token_with_pool(unverified_session_id, pool).await {
         Some(id) => id,
         None => {
-            log::trace!(
+            log::debug!(
                 "`{user_agent}` from {addr} wtih cookies {:#?} websocket rejected due to \
                  invalid session.",
                 cookies
@@ -532,7 +532,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
             tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
         }
 
-        log::trace!("Sending close to {who}...");
+        /*log::trace!("Sending close to {who}...");
         if let Err(e) = sender
             .send(Message::Close(Some(CloseFrame {
                 code: axum::extract::ws::close_code::NORMAL,
@@ -541,7 +541,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
             .await
         {
             log::trace!("Could not send Close due to {}, probably it is ok?", e);
-        }
+        }*/
         n_msg
     });
 
@@ -563,7 +563,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
         rv_a = (&mut send_task) => {
             match rv_a {
                 Ok(a) => log::trace!("{} messages sent to {}", a, who),
-                Err(a) => log::trace!("Error sending messages {:?}", a)
+                Err(a) => log::error!("Error sending messages {:?}", a)
             }
             //log::trace!("send_task caused abort");
             recv_task.abort();
@@ -571,7 +571,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
         rv_b = (&mut recv_task) => {
             match rv_b {
                 Ok(b) => log::trace!("Received {} messages", b),
-                Err(b) => log::trace!("Error receiving messages {:?}", b)
+                Err(b) => log::error!("Error receiving messages {:?}", b)
             }
             //log::trace!("recv_task caused abort");
             send_task.abort();

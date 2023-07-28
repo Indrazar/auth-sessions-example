@@ -409,7 +409,7 @@ fn gen_hash(input: SecretString) -> Result<String, ServerFnError> {
     match Argon2::default().hash_password(input.expose_secret().as_bytes(), &salt) {
         Ok(hash) => Ok(hash.to_string()),
         Err(err) => {
-            log::trace!("failed to produce hash of password in gen_hash: {err}");
+            log::error!("failed to produce hash of password in gen_hash: {err}");
             Err(ServerFnError::ServerError(String::from(
                 "Signup Request failed.",
             )))

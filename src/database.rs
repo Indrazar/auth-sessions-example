@@ -158,7 +158,7 @@ pub async fn drop_session(session_id: &String) {
     match remove_res {
         Ok(val) => {
             if val.rows_affected() != 1 {
-                log::trace!(
+                log::debug!(
                     "removal of session from database failed, rows_affected: {}",
                     val.rows_affected()
                 );
@@ -191,32 +191,6 @@ pub async fn validate_token(untrusted_session: String) -> Option<uuid::Uuid> {
         }
     };
     validate_token_with_pool(untrusted_session, pool).await
-    /*let row = sqlx::query_as!(
-        ValidateSession,
-        r#"SELECT user_id AS "user_id: Uuid", expiry AS "expiry: DateTime<Utc>" FROM active_sesssions WHERE session_id = ?"#,
-        untrusted_session
-    )
-    .fetch_one(&pool)
-    .await;
-    let (true_uuid, expiry): (Uuid, DateTime<Utc>) = match row {
-        Ok(cred) => (cred.user_id, cred.expiry),
-        Err(e) => match e {
-            sqlx::Error::RowNotFound => {
-                return None;
-            }
-            _ => {
-                log::error!("validate_token: sqlx error: {e}");
-                return None;
-            }
-        },
-    };
-    //validate NOT expired
-    if expiry < Utc::now() {
-        drop_session(&untrusted_session).await;
-        None
-    } else {
-        Some(true_uuid)
-    }*/
 }
 
 #[cfg(feature = "ssr")]
