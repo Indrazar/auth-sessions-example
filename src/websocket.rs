@@ -237,7 +237,7 @@ pub fn web_sys_websocket(
                 // onopen handler
                 {
                     let onopen_closure = Closure::wrap(Box::new(move |e: Event| {
-                        if unmounted_ref.try_get_value().unwrap_or(true) {
+                        if unmounted_ref.get_value() {
                             return;
                         }
 
@@ -254,7 +254,7 @@ pub fn web_sys_websocket(
                 // onmessage handler
                 {
                     let onmessage_closure = Closure::wrap(Box::new(move |e: MessageEvent| {
-                        if unmounted_ref.try_get_value().unwrap_or(true) {
+                        if unmounted_ref.get_value() {
                             return;
                         }
 
@@ -290,7 +290,7 @@ pub fn web_sys_websocket(
                 // onerror handler
                 {
                     let onerror_closure = Closure::wrap(Box::new(move |e: Event| {
-                        if unmounted_ref.try_get_value().unwrap_or(true) {
+                        if unmounted_ref.get_value() {
                             return;
                         }
 
@@ -309,7 +309,7 @@ pub fn web_sys_websocket(
                 // onclose handler
                 {
                     let onclose_closure = Closure::wrap(Box::new(move |e: CloseEvent| {
-                        if unmounted_ref.try_get_value().unwrap_or(true) {
+                        if unmounted_ref.get_value() {
                             return;
                         }
 
@@ -565,14 +565,16 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
                 Ok(a) => log::trace!("{} messages sent to {}", a, who),
                 Err(a) => log::trace!("Error sending messages {:?}", a)
             }
-            //recv_task.abort();
+            //log::trace!("send_task caused abort");
+            recv_task.abort();
         },
         rv_b = (&mut recv_task) => {
             match rv_b {
                 Ok(b) => log::trace!("Received {} messages", b),
                 Err(b) => log::trace!("Error receiving messages {:?}", b)
             }
-            //send_task.abort();
+            //log::trace!("recv_task caused abort");
+            send_task.abort();
         }
     }
 
@@ -583,7 +585,6 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
 #[cfg(feature = "ssr")]
 /// helper to print contents of messages to stdout. Has special treatment for Close.
 fn process_message(msg: Message, who: SocketAddr) -> ControlFlow<(), ()> {
-    log::trace!("in process_message with msg: {:?}", msg);
     match msg {
         Message::Text(t) => {
             log::trace!(">>> {} sent str: {:?}", who, t);
@@ -600,7 +601,7 @@ fn process_message(msg: Message, who: SocketAddr) -> ControlFlow<(), ()> {
                     cf.reason
                 );
             } else {
-                log::trace!(">>> {} somehow sent close message without CloseFrame", who);
+                log::trace!(">>> {} sent close message without CloseFrame", who);
             }
             return ControlFlow::Break(());
         }

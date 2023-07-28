@@ -74,11 +74,6 @@ pub fn HomepageLoggedIn(user_data: UserData) -> impl IntoView {
         });
     };
 
-    //log!(
-    //    "{}",
-    //    dotenvy_macro::dotenv!("WEBSOCKET_URL").to_string()
-    //);
-
     let WebSysWebsocketReturn {
         ready_state,
         send,
@@ -134,6 +129,7 @@ pub fn HomepageLoggedIn(user_data: UserData) -> impl IntoView {
     });
 
     let connected = move || ready_state.get() == WebSysWebSocketReadyState::Open;
+
     view! {
     <div class="main-text">
         <p>"Hello! This is your home page " {user_data.display_name.clone()} "."</p>
