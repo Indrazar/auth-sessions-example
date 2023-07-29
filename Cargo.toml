@@ -17,6 +17,7 @@ cfg-if = "1"
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock", "std"] }
 console_error_panic_hook = "0.1"
 console_log = "1.0"
+const_format = "0.2.31"
 default-struct-builder = "0.4"
 dotenvy = { version = "0.15", optional = true }
 dotenvy_macro = "0.15"
@@ -25,7 +26,6 @@ futures = "0.3"
 gloo-net = "0.3"
 http = "0.2"
 js-sys = "0.3"
-#jsonwebtoken = { version = "8.0", optional = true }
 lazy_static = "1"
 leptos = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", default-features = false}
 leptos_axum = { git = "https://github.com/leptos-rs/leptos", branch = "effect-cleanups", default-features = false, optional = true }
@@ -35,7 +35,6 @@ leptos_router = { git = "https://github.com/leptos-rs/leptos", branch = "effect-
 log = "0.4"
 mime = { version = "0.3", optional = true }
 secrecy = {version = "0.8.0", optional = true, features = ["serde"] }
-#oauth2 = { version = "4.3", default-features = false, features = ["rustls-tls"], optional = true }
 rand = { version = "0.8", features = ["std", "std_rng"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.5"
@@ -46,21 +45,13 @@ thiserror = "1.0"
 tokio = { version = "1.25", features = ["full"], optional = true }
 tokio-tungstenite = { version = "0.20", optional = true }
 tower = { version = "0.4", optional = true }
-#tower-governor = { version = "0.0.4", git = "https://github.com/benwis/tower-governor", optional = true }
 tower-http = { version = "0.4.0", features = ["fs", "compression-gzip", "trace"], optional = true }
-#tracing = { version = "0.1", optional = true }
-#tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
 uuid = { version = "1", features = ["fast-rng", "std", "serde", "v4", "v7"], optional = true }
 wasm-bindgen = "0.2"
 web-sys = { version = "0.3", features = ["AbortController", "AbortSignal", "HtmlDocument"] }
 
-
 [features]
-hydrate = [
-    "leptos/hydrate",
-    "leptos_meta/hydrate",
-    "leptos_router/hydrate",
-]
+hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
     "axum",
     "axum-server",
@@ -82,12 +73,7 @@ ssr = [
     "secrecy",
     "argon2",
     "uuid",
-#   "tracing",
-#   "tracing-subscriber",
-    "tokio-tungstenite",
-#   "jsonwebtoken",
-#   "oauth2",
-#   "tower-governor",
+    "tokio-tungstenite"
 ]
 
 [package.metadata.cargo-all-features]

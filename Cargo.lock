@@ -186,6 +186,7 @@ dependencies = [
  "chrono",
  "console_error_panic_hook",
  "console_log",
+ "const_format",
  "default-struct-builder",
  "dotenvy",
  "dotenvy_macro",

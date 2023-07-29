@@ -7,6 +7,7 @@ mod components;
 use components::{csrf::CSRFField, logheader::LogHeader};
 mod homepage;
 use crate::database::UserData;
+use crate::defs::*;
 use homepage::HomePage;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
@@ -244,11 +245,11 @@ pub fn Signup(action: Action<Signup, Result<String, ServerFnError>>) -> impl Int
                 </p>
                 <p>
                     <label for="username">"Username:"</label>
-                    <input type="text" maxlength="32" name="username" required class="auth-input"/>
+                    <input type="text" maxlength=USERNAME_MAX_LEN_STR minlength=USERNAME_MIN_LEN_STR name="username" required class="auth-input"/>
                 </p>
                 <p>
                     <label for="display">"Display Name:"</label>
-                    <input type="text" maxlength="16" name="display" required/>
+                    <input type="text" maxlength=DISPLAY_NAME_MAX_LEN minlength=DISPLAY_NAME_MIN_LEN name="display" required/>
                 </p>
                 <p>
                     <label for="email">"E-Mail Address:"</label>
@@ -260,11 +261,11 @@ pub fn Signup(action: Action<Signup, Result<String, ServerFnError>>) -> impl Int
                 </p>
                 <p>
                     <label for="password">"Password:"</label>
-                    <input type="password" name="password" required class="auth-input"/>
+                    <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password" required class="auth-input"/>
                 </p>
                 <p>
                     <label for="password_confirmation">"Password (Confirmation):"</label>
-                    <input type="password" name="password_confirmation" required/>
+                    <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password_confirmation" required/>
                 </p>
                     <input type="submit" disabled=submit_disabled value="Sign Up"/>
                 <p>
