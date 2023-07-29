@@ -143,7 +143,9 @@ pub fn App() -> impl IntoView {
             <div/>
             <main>
             <Routes>
-                <Route path="" view=move || view! {<HomePage /> }/> //Route
+                <Route path="" view=move || view! {
+                    <HomePage />
+                }/>
                 <Route path="signup" ssr=SsrMode::Async view=move || view! {
                     <Signup action=signup />
                 }/>
@@ -225,6 +227,14 @@ pub fn Signup(action: Action<Signup, Result<String, ServerFnError>>) -> impl Int
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
+    let (signup_result, set_signup_result) = create_signal(String::default());
+
+    create_effect(move |_| match action.value().get() {
+        Some(Ok(res)) => set_signup_result.set(res),
+        Some(Err(e)) => set_signup_result.set(format!("Error processing request: {e}")),
+        None => {}
+    });
+
     view! {
         <h2>"Sign Up"</h2>
         <p>
@@ -257,6 +267,9 @@ pub fn Signup(action: Action<Signup, Result<String, ServerFnError>>) -> impl Int
                     <input type="password" name="password_confirmation" required/>
                 </p>
                     <input type="submit" disabled=submit_disabled value="Sign Up"/>
+                <p>
+                    {signup_result}
+                </p>
             </ActionForm>
         </p>
         <p>
