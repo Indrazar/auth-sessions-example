@@ -26,7 +26,7 @@ pub async fn destroy_session() {
         )
         .expect("to create header value"),
     );
-    // extract request, bailing if there is none
+    // grab request, bailing if there is none
     let http_req = match use_context::<RequestParts>() {
         Some(rp) => rp, // actual user request
         None => return, // no request, building routes in main.rs
@@ -44,9 +44,10 @@ pub async fn issue_session_cookie(
     let response = match use_context::<leptos_axum::ResponseOptions>() {
         Some(ro) => ro,
         None => {
+            log::error!("no response options in issue_session_cookie");
             return Err(ServerFnError::ServerError(String::from(
                 "Login Request failed.",
-            )))
+            )));
         }
     };
     let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
@@ -65,7 +66,7 @@ pub async fn issue_session_cookie(
 
 #[cfg(feature = "ssr")]
 pub async fn validate_session() -> Option<Uuid> {
-    // extract request, bailing if there is none
+    // grab request, bailing if there is none
     let http_req = match use_context::<RequestParts>() {
         Some(rp) => rp,      // actual user request
         None => return None, // no request, building routes in main.rs

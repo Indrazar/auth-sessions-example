@@ -7,13 +7,14 @@ struct Ports {
 
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     use auth_sessions_example::{
+        defs::{AppState, ServerVars},
         fileserv::file_and_error_handler,
         pages::App,
         websocket::axum_ws_handler,
-        security::{gen_128bit_base64, ServerSessionData},
+        security::gen_128bit_base64,
     };
     use axum::{
-        extract::{Extension, Host, Path, ConnectInfo},
+        extract::{Host, Path, ConnectInfo, State},
         handler::HandlerWithoutStateExt,
         http::{Request, StatusCode, Uri, header::HeaderMap},
         response::{Response, Redirect, IntoResponse},
@@ -24,8 +25,8 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     use axum_server::tls_rustls::RustlsConfig;
     use leptos::*;
     use leptos_axum::*;
-    use std::{env, net::SocketAddr, path::PathBuf, sync::Arc};
-    use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
+    use std::{env, net::SocketAddr, path::PathBuf};
+    use sqlx::sqlite::SqlitePoolOptions;
     use tower_http::compression::CompressionLayer;
 }}
 
@@ -98,7 +99,7 @@ async fn main() {
     let routes = generate_route_list(|| leptos::view! { <App/> }).await;
 
     //setup db pool
-    let pool_options = SqlitePoolOptions::new()
+    let pool = SqlitePoolOptions::new()
         .connect(
             env::var("DATABASE_URL")
                 .expect("DATABASE_URL not set")
@@ -108,28 +109,30 @@ async fn main() {
         .expect("Could not make pool.");
 
     sqlx::migrate!()
-        .run(&pool_options)
+        .run(&pool)
         .await
         .expect("could not run SQLx migrations");
 
     log::info!("Server process starting");
     log::info!("Server {:#?}", leptos_options);
 
-    let server_session_data = ServerSessionData {
-        csrf_server: gen_128bit_base64(),
+    let app_state = AppState {
+        leptos_options,
+        pool,
+        routes: routes.clone(),
+        vars: ServerVars {
+            csrf_server: gen_128bit_base64(),
+        },
     };
 
     // build our application with a route
     let app = Router::new()
-        .route("/api/*fn_name", post(api_fn_handler))
+        .route("/api/*fn_name", post(server_fn_handler))
         .route("/ws", get(axum_ws_handler))
         .leptos_routes_with_handler(routes, get(leptos_routes_handler))
         .fallback(file_and_error_handler)
-        .layer(Extension(Arc::new(leptos_options.clone())))
-        .layer(Extension(server_session_data))
-        .layer(Extension(pool_options))
         .layer(CompressionLayer::new())
-        .with_state(leptos_options);
+        .with_state(app_state);
 
     // spawn a redirect http to https
     tokio::spawn(redirect_http_to_https(ports));
@@ -144,17 +147,18 @@ async fn main() {
 
 #[cfg(feature = "ssr")]
 async fn leptos_routes_handler(
-    Extension(server_session_data): Extension<ServerSessionData>,
-    Extension(pool): Extension<SqlitePool>,
-    Extension(options): Extension<Arc<LeptosOptions>>,
+    State(app_state): State<AppState>,
+    connect_info: ConnectInfo<SocketAddr>,
     req: Request<AxumBody>,
 ) -> Response {
-    let handler = leptos_axum::render_app_async_with_context(
-        (*options).clone(),
+    let handler = leptos_axum::render_route_with_context(
+        app_state.leptos_options.clone(),
+        app_state.routes.clone(),
         move || {
-            provide_context(pool.clone());
-            provide_context(server_session_data.clone());
-            provide_context(options.clone());
+            provide_context(app_state.pool.clone());
+            provide_context(app_state.vars.clone());
+            provide_context(connect_info);
+            provide_context(app_state.leptos_options.clone());
         },
         || view! {<App/>},
     );
@@ -162,28 +166,28 @@ async fn leptos_routes_handler(
 }
 
 #[cfg(feature = "ssr")]
-async fn api_fn_handler(
-    Extension(server_session_data): Extension<ServerSessionData>,
-    Extension(pool): Extension<SqlitePool>,
-    Extension(connect_info): Extension<ConnectInfo<SocketAddr>>,
+async fn server_fn_handler(
+    State(app_state): State<AppState>,
+    connect_info: ConnectInfo<SocketAddr>,
     path: Path<String>,
     headers: HeaderMap,
     query: axum::extract::RawQuery,
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
     log::debug!(
-        "api_fn_handler: path: {:?}, connect_info: {:?}",
+        "server_fn_handler: path: {:?}, connect_info: {:?}",
         path,
-        connect_info
+        connect_info,
     );
     handle_server_fns_with_context(
         path,
         headers,
         query,
         move || {
-            provide_context(pool.clone());
-            provide_context(server_session_data.clone());
-            provide_context(connect_info)
+            provide_context(app_state.pool.clone());
+            provide_context(app_state.vars.clone());
+            provide_context(connect_info);
+            provide_context(app_state.leptos_options.clone());
         },
         request,
     )

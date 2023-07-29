@@ -10,9 +10,10 @@ use web_sys::{CloseEvent, Event, WebSocket as WebSysWebSocket};
 
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::{cookies::parse_session_header_cookie, database::validate_token_with_pool};
+    use crate::defs::AppState;
     use axum::{
         extract::{
-            Extension,
+            State,
             ws::{Message, WebSocket as AxumWebSocket, WebSocketUpgrade as AxumWebSocketUpgrade},
             TypedHeader,
             connect_info::ConnectInfo,
@@ -20,11 +21,9 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
         response::IntoResponse,
         http::StatusCode,
     };
-    use std::{ops::ControlFlow, net::SocketAddr, sync::Arc};
+    use std::{ops::ControlFlow, net::SocketAddr};
     //allows to split the websocket stream into separate TX and RX branches
     use futures::{sink::SinkExt, stream::StreamExt};
-    //needed to extract the pool from the axum request
-    use sqlx::SqlitePool;
     use uuid::Uuid;
 } else {
     use web_sys::{BinaryType, MessageEvent};
@@ -96,11 +95,13 @@ pub struct WebSysWebSocketOptions {
     /// `WebSysWebSocket` close callback.
     on_close: Box<dyn CloneFn<CloseEvent>>,
     /// Retry times.
-    reconnect_limit: Option<u64>,
+    reconnect_limit: u64,
     /// Retry interval(ms).
-    reconnect_interval: Option<u64>,
-    /// Manually starts connection
-    manual: bool,
+    reconnect_interval: u64,
+    /// If `true` the `WebSocket` connection will immediately be opened when calling this function.
+    /// If `false` you have to manually call the `open` function.
+    /// Defaults to `true`.
+    immediate: bool,
     /// Sub protocols
     protocols: Option<Vec<String>>,
 }
@@ -113,9 +114,9 @@ impl Default for WebSysWebSocketOptions {
             on_message_bytes: Box::new(|_| {}),
             on_error: Box::new(|_| {}),
             on_close: Box::new(|_| {}),
-            reconnect_limit: Some(3),
-            reconnect_interval: Some(3 * 1000),
-            manual: false,
+            reconnect_limit: 3,
+            reconnect_interval: 3000,
+            immediate: false,
             protocols: Default::default(),
         }
     }
@@ -148,7 +149,7 @@ where
 }
 
 pub fn web_sys_websocket(
-    url: String,
+    url: &str,
     options: WebSysWebSocketOptions,
 ) -> WebSysWebsocketReturn<
     impl Fn() + Clone + 'static,
@@ -156,15 +157,17 @@ pub fn web_sys_websocket(
     impl Fn(String) + Clone + 'static,
     impl Fn(Vec<u8>) + Clone,
 > {
+    let url = url.to_string();
+
     let (state, set_state) = create_signal(WebSysWebSocketReadyState::Closed);
     let (message, set_message) = create_signal(None);
     let (message_bytes, set_message_bytes) = create_signal(None);
     let ws_ref: StoredValue<Option<WebSysWebSocket>> = store_value(None);
 
-    let reconnect_limit = options.reconnect_limit.unwrap_or(3);
+    let reconnect_limit = options.reconnect_limit;
 
     let reconnect_timer_ref: StoredValue<Option<TimeoutHandle>> = store_value(None);
-    let manual = options.manual;
+    let immediate = options.immediate;
 
     let reconnect_times_ref: StoredValue<u64> = store_value(0);
     let unmounted_ref = store_value(false);
@@ -178,7 +181,7 @@ pub fn web_sys_websocket(
         let on_error_ref = store_value(options.on_error);
         let on_close_ref = store_value(options.on_close);
 
-        let reconnect_interval = options.reconnect_interval.unwrap_or(3 * 1000);
+        let reconnect_interval = options.reconnect_interval;
         let protocols = options.protocols;
 
         let reconnect_ref: StoredValue<Option<Rc<dyn Fn()>>> = store_value(None);
@@ -187,8 +190,8 @@ pub fn web_sys_websocket(
             Some(Rc::new(move || {
                 if reconnect_times_ref.get_value() < reconnect_limit
                     && ws
-                    .clone()
-                    .map_or(false, |ws: WebSysWebSocket| ws.ready_state() != WebSysWebSocket::OPEN)
+                        .clone()
+                        .map_or(false, |ws: WebSysWebSocket| ws.ready_state() != WebSysWebSocket::OPEN)
                 {
                     reconnect_timer_ref.set_value(
                         set_timeout_with_handle(
@@ -200,7 +203,7 @@ pub fn web_sys_websocket(
                             },
                             Duration::from_millis(reconnect_interval),
                         )
-                            .ok(),
+                        .ok(),
                     );
                 }
             }))
@@ -287,6 +290,7 @@ pub fn web_sys_websocket(
                     web_socket.set_onmessage(Some(onmessage_closure.as_ref().unchecked_ref()));
                     onmessage_closure.forget();
                 }
+
                 // onerror handler
                 {
                     let onerror_closure = Closure::wrap(Box::new(move |e: Event| {
@@ -306,6 +310,7 @@ pub fn web_sys_websocket(
                     web_socket.set_onerror(Some(onerror_closure.as_ref().unchecked_ref()));
                     onerror_closure.forget();
                 }
+
                 // onclose handler
                 {
                     let onclose_closure = Closure::wrap(Box::new(move |e: CloseEvent| {
@@ -372,9 +377,9 @@ pub fn web_sys_websocket(
         }
     };
 
-    // Open connection (not called if option `manual` is true)
+    // Open connection (not called if option `immediate` is false)
     create_effect(move |_| {
-        if !manual {
+        if immediate {
             open();
         }
     });
@@ -409,10 +414,12 @@ pub async fn axum_ws_handler(
     user_agent: Option<TypedHeader<axum::headers::UserAgent>>,
     origin: Option<TypedHeader<axum::headers::Origin>>,
     header_cookies: Option<TypedHeader<axum::headers::Cookie>>,
+    State(app_state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    Extension(options): Extension<Arc<LeptosOptions>>,
-    Extension(pool): Extension<SqlitePool>,
+    //Extension(options): Extension<Arc<LeptosOptions>>,
+    //Extension(pool): Extension<SqlitePool>,
 ) -> impl IntoResponse {
+    log::trace!("in axum_ws_handler"); //TODO REMOVE
     let user_agent = if let Some(TypedHeader(user_agent)) = user_agent {
         user_agent.to_string()
     } else {
@@ -423,7 +430,7 @@ pub async fn axum_ws_handler(
     } else {
         String::from("Unknown origin")
     };
-    let site_url = format!("https://{}", (*options).site_addr.to_string());
+    let site_url = format!("https://{}", app_state.leptos_options.site_addr.to_string());
     // validate origin header
     if origin != site_url {
         log::debug!(
@@ -448,7 +455,8 @@ pub async fn axum_ws_handler(
     };
     // validate Uuid and pass into handler
     let unverified_session_id = parse_session_header_cookie(&cookies);
-    let user_uuid = match validate_token_with_pool(unverified_session_id, pool).await {
+    let user_uuid = match validate_token_with_pool(unverified_session_id, app_state.pool).await
+    {
         Some(id) => id,
         None => {
             log::debug!(

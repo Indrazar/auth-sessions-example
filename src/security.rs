@@ -3,7 +3,7 @@ use cfg_if::cfg_if;
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::get_cookie_value;
     use crate::database::{register_user, unique_cred_check, retrieve_credentials, UniqueCredential};
-    use crate::defs;
+    use crate::defs::{self, ServerVars};
     use argon2::{
         password_hash::{PasswordVerifier, SaltString},
         Argon2, PasswordHash, PasswordHasher,
@@ -22,21 +22,13 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 }}
 
 #[cfg(feature = "ssr")]
-#[derive(Clone)]
-pub struct ServerSessionData {
-    //eventually update this to an Arc<RwLock<String>>
-    //for now it's not mutable so this should be fine
-    pub csrf_server: String,
-}
-
-#[cfg(feature = "ssr")]
 pub fn generate_csrf() -> String {
     let response = match use_context::<leptos_axum::ResponseOptions>() {
         Some(ro) => ro,
         None => return String::default(),
     };
     let csrf_cookie = gen_128bit_base64();
-    let csrf_server = match use_context::<ServerSessionData>() {
+    let csrf_server = match use_context::<ServerVars>() {
         Some(data) => data.csrf_server,
         None => return String::default(),
     };
@@ -61,9 +53,12 @@ pub enum CsrfError {
 
 #[cfg(feature = "ssr")]
 pub fn validate_csrf(req: RequestParts, csrf_token: String) -> Result<(), CsrfError> {
-    let csrf_server = match use_context::<ServerSessionData>() {
+    let csrf_server = match use_context::<ServerVars>() {
         Some(data) => data.csrf_server,
-        None => return Err(CsrfError::NoMatchingCookie),
+        None => {
+            log::error!("could not retrieve servervars");
+            return Err(CsrfError::NoMatchingCookie);
+        }
     };
     let mut only_one = 0;
     let mut cookie_value = String::default();

@@ -119,8 +119,15 @@ pub async fn associate_session(
     session_id: &String,
     expire_time: DateTime<Utc>,
 ) -> Result<(), ServerFnError> {
-    let pool =
-        use_context::<SqlitePool>().expect("sql pool not available in associate_session");
+    let pool = match use_context::<SqlitePool>() {
+        Some(pool) => pool,
+        None => {
+            log::error!("sql pool not available in associate_session");
+            return Err(ServerFnError::ServerError(String::from(
+                "Signup Request failed.",
+            )));
+        }
+    };
     let query_res = sqlx::query!(
         "INSERT INTO active_sesssions (session_id, user_id, expiry) VALUES (?, ?, ?)",
         session_id,
@@ -148,7 +155,13 @@ pub async fn associate_session(
 
 #[cfg(feature = "ssr")]
 pub async fn drop_session(session_id: &String) {
-    let pool = use_context::<SqlitePool>().expect("sql pool not available in drop_session");
+    let pool = match use_context::<SqlitePool>() {
+        Some(pool) => pool,
+        None => {
+            log::error!("sql pool not available in drop_session, could not drop");
+            return;
+        }
+    };
     let remove_res = sqlx::query!(
         "DELETE FROM active_sesssions WHERE session_id = ?",
         session_id
@@ -237,8 +250,15 @@ struct ValidateCredential {
 pub async fn retrieve_credentials(
     username: &String,
 ) -> Result<Option<(Uuid, SecretString)>, ServerFnError> {
-    let pool =
-        use_context::<SqlitePool>().expect("sql pool not available in retrieve_credentials");
+    let pool = match use_context::<SqlitePool>() {
+        Some(pool) => pool,
+        None => {
+            log::error!("sql pool not available in retrieve_credentials");
+            return Err(ServerFnError::ServerError(String::from(
+                "Signup Request failed.",
+            )));
+        }
+    };
     let row = sqlx::query_as!(
         ValidateCredential,
         r#"SELECT user_id AS "user_id: Uuid", password_hash FROM users WHERE username = ?"#,
@@ -290,7 +310,15 @@ pub async fn unique_cred_check(input: UniqueCredential) -> Result<(), Registrati
 
 #[cfg(feature = "ssr")]
 async fn username_check(username: String) -> Result<(), RegistrationError> {
-    let pool = use_context::<SqlitePool>().expect("sql pool not available in username_check");
+    let pool = match use_context::<SqlitePool>() {
+        Some(pool) => pool,
+        None => {
+            log::error!("sql pool not available in username_check");
+            return Err(RegistrationError::ServerError(ServerFnError::ServerError(
+                String::from("Signup Request failed."),
+            )));
+        }
+    };
     let user_exists =
         match sqlx::query!("SELECT username FROM users WHERE username = ?", username)
             .fetch_one(&pool)
@@ -318,8 +346,15 @@ async fn username_check(username: String) -> Result<(), RegistrationError> {
 
 #[cfg(feature = "ssr")]
 async fn display_name_check(display_name: String) -> Result<(), RegistrationError> {
-    let pool =
-        use_context::<SqlitePool>().expect("sql pool not available in display_name_check");
+    let pool = match use_context::<SqlitePool>() {
+        Some(pool) => pool,
+        None => {
+            log::error!("sql pool not available in display_name_check");
+            return Err(RegistrationError::ServerError(ServerFnError::ServerError(
+                String::from("Signup Request failed."),
+            )));
+        }
+    };
     let display_exists = match sqlx::query!(
         "SELECT display_name FROM users WHERE display_name = ?",
         display_name

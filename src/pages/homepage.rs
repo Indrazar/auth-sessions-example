@@ -85,9 +85,9 @@ pub fn HomepageLoggedIn(user_data: UserData) -> impl IntoView {
         ..
         //ws not needed
     } = web_sys_websocket(
-        dotenvy_macro::dotenv!("WEBSOCKET_URL").to_string(),
+        dotenvy_macro::dotenv!("WEBSOCKET_URL"),
         WebSysWebSocketOptions::default()
-            .manual(true)
+            .immediate(false)
             .on_open(on_open_callback.clone())
             .on_close(on_close_callback.clone())
             .on_error(on_error_callback.clone())

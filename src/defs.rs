@@ -27,3 +27,27 @@ pub const PASSWORD_MAX_LEN_STR: &str = formatcp!("{PASSWORD_MAX_LEN}");
 /// Password min length limit
 pub const PASSWORD_MIN_LEN: usize = 15;
 pub const PASSWORD_MIN_LEN_STR: &str = formatcp!("{PASSWORD_MIN_LEN}");
+
+use cfg_if::cfg_if;
+
+cfg_if! {
+    if #[cfg(feature = "ssr")] {
+        use leptos::LeptosOptions;
+        use sqlx::SqlitePool;
+        use axum::extract::FromRef;
+        use leptos_router::RouteListing;
+
+        #[derive(Debug, Clone)]
+        pub struct ServerVars {
+            pub csrf_server: String,
+        }
+
+        #[derive(FromRef, Debug, Clone)]
+        pub struct AppState {
+            pub leptos_options: LeptosOptions,
+            pub pool: SqlitePool,
+            pub routes: Vec<RouteListing>,
+            pub vars: ServerVars,
+        }
+    }
+}
