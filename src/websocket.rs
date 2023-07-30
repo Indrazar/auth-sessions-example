@@ -416,10 +416,7 @@ pub async fn axum_ws_handler(
     header_cookies: Option<TypedHeader<axum::headers::Cookie>>,
     State(app_state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    //Extension(options): Extension<Arc<LeptosOptions>>,
-    //Extension(pool): Extension<SqlitePool>,
 ) -> impl IntoResponse {
-    log::trace!("in axum_ws_handler"); //TODO REMOVE
     let user_agent = if let Some(TypedHeader(user_agent)) = user_agent {
         user_agent.to_string()
     } else {

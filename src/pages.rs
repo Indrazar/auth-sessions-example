@@ -76,6 +76,7 @@ pub fn App() -> impl IntoView {
     let userdata = create_resource(
         move || {
             (
+                // changing these conditions may reduce "get_user_data" server calls
                 login.version().get(),
                 signup.version().get(),
                 logout.version().get(),
@@ -186,11 +187,11 @@ pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView 
                 <CSRFField/>
                 <p>
                     <label for="username">"Username:"</label>
-                    <input type="text" maxlength="32" name="username" required value/>
+                    <input type="text" maxlength=USERNAME_MAX_LEN_STR minlength=USERNAME_MIN_LEN_STR name="username" required value/>
                 </p>
                 <p>
                     <label for="password">"Password:"</label>
-                    <input type="password" name="password" required value/>
+                    <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password" required value/>
                 </p>
                     <input type="submit" disabled=submit_disabled value="Login"/>
                 <p>
