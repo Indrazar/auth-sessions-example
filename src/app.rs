@@ -16,6 +16,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use axum::{
         http::{HeaderValue, header::CONTENT_TYPE}
     };
+    use leptos::nonce::use_nonce;
     use leptos_axum::redirect;
     use secrecy::SecretString;
 }}
@@ -28,7 +29,8 @@ fn set_headers() {
         Some(ro) => ro,
         None => return, // building routes in main.rs
     };
-    //TODO remove after leptos sets this by default
+    let nonce = use_nonce().expect("a nonce to be made");
+    //TODO remove after leptos sets any of these by default
     response.insert_header(
         CONTENT_TYPE,
         HeaderValue::from_static(mime::TEXT_HTML_UTF_8.as_ref()),
@@ -48,18 +50,40 @@ fn set_headers() {
     #[cfg(debug_assertions)]
     response.insert_header(
         axum::http::header::CONTENT_SECURITY_POLICY,
-        HeaderValue::from_static(
+        HeaderValue::from_str(
             // loading WASM requires 'unsafe-inline' 'unsafe-eval'
-            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; connect-src 'self' ws://127.0.0.1:3001/ ws://127.0.0.1:3000/",
-        ), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
+            // or
+            // script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval'
+            // for debug we add:
+            //     connect-src ws://127.0.0.1:3001/
+            format!(
+                "default-src 'self';\
+                script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';\
+                style-src 'nonce-{nonce}';\
+                connect-src 'self' ws://127.0.0.1:3001/ ws://127.0.0.1:3000/"
+            )
+            .as_str(),
+        )
+        .expect("valid header"), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
     );
     #[cfg(not(debug_assertions))]
     response.insert_header(
         axum::http::header::CONTENT_SECURITY_POLICY,
-        HeaderValue::from_static(
+        HeaderValue::from_str(
             // loading WASM requires 'unsafe-inline' 'unsafe-eval'
-            "default-src 'self'; script-src 'unsafe-inline' 'unsafe-eval' 'self'; connect-src 'self' ws://127.0.0.1:3000/",
-        ), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
+            // or
+            // script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval'
+            // for debug we remove:
+            //     connect-src ws://127.0.0.1:3001/
+            format!(
+                "default-src 'self';\
+                script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';\
+                style-src 'nonce-{nonce}';\
+                connect-src 'self' ws://127.0.0.1:3000/"
+            )
+            .as_str(),
+        )
+        .expect("valid header"), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
     );
     response.insert_header(
         axum::http::header::STRICT_TRANSPORT_SECURITY,
@@ -99,7 +123,7 @@ pub fn App() -> impl IntoView {
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet id="leptos" href="/pkg/auth_sessions_example.css"/>
-        //<Script nonce={nonce}/>
+        //<script nonce=use_nonce />
 
         // sets the document title
         <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>

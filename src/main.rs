@@ -9,7 +9,7 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     use auth_sessions_example::{
         defs::{AppState, ServerVars},
         fileserv::file_and_error_handler,
-        pages::App,
+        app::App,
         websocket::axum_ws_handler,
         security::gen_128bit_base64,
     };

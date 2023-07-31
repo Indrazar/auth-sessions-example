@@ -1,6 +1,6 @@
 use crate::{
+    app::get_user_data,
     database::UserData,
-    pages::get_user_data,
     websocket::{
         web_sys_websocket, WebSysWebSocketOptions, WebSysWebSocketReadyState,
         WebSysWebsocketReturn,

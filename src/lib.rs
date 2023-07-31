@@ -1,8 +1,8 @@
+pub mod app;
 pub mod cookies;
 pub mod database;
 pub mod defs;
 pub mod fileserv;
-pub mod pages;
 pub mod security;
 pub mod websocket;
 
@@ -13,7 +13,7 @@ cfg_if! { if #[cfg(feature = "hydrate")] {
     #[wasm_bindgen]
     pub fn hydrate() {
 
-        use pages::*;
+        use app::*;
         use leptos::*;
 
         _ = console_log::init_with_level(log::Level::Debug);
