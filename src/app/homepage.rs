@@ -129,6 +129,8 @@ pub fn HomepageLoggedIn(user_data: UserData) -> impl IntoView {
     });
 
     let connected = move || ready_state.get() == WebSysWebSocketReadyState::Open;
+    let disable_all_buttons =
+        move || ready_state.get() == WebSysWebSocketReadyState::Uninitialized;
 
     view! {
     <div class="main-text">
@@ -136,10 +138,10 @@ pub fn HomepageLoggedIn(user_data: UserData) -> impl IntoView {
         <p>"More information could be put here if we wanted. So far all we have is: " {format!("{:?}", user_data.clone())}</p>
         <p>"Websocket status: " {status}</p>
         <p>"Websocket buttons:"</p>
-        <button on:click=open_connection disabled=connected>"Connect"</button>
-        <button on:click=send_message disabled=move || !connected()>"Send"</button>
-        <button on:click=send_byte_message disabled=move || !connected()>"Send bytes"</button>
-        <button on:click=close_connection disabled=move || !connected()>"Disconnect"</button>
+        <button on:click=open_connection disabled=move || {connected() || disable_all_buttons()}>"Connect"</button>
+        <button on:click=send_message disabled=move || {!connected() || disable_all_buttons()}>"Send"</button>
+        <button on:click=send_byte_message disabled=move || {!connected() || disable_all_buttons()}>"Send bytes"</button>
+        <button on:click=close_connection disabled=move || {!connected()|| disable_all_buttons()}>"Disconnect"</button>
         <button on:click=move |_| set_history.set(vec![]) disabled=move || history.get().len() <= 0>"Clear"</button>
         <p>"Websocket history:"</p>
         //alternate method:

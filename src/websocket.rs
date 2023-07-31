@@ -69,6 +69,7 @@ pub enum WebSysWebSocketReadyState {
     Open,
     Closing,
     Closed,
+    Uninitialized,
 }
 
 impl fmt::Display for WebSysWebSocketReadyState {
@@ -78,6 +79,7 @@ impl fmt::Display for WebSysWebSocketReadyState {
             WebSysWebSocketReadyState::Open => write!(f, "Open"),
             WebSysWebSocketReadyState::Closing => write!(f, "Closing"),
             WebSysWebSocketReadyState::Closed => write!(f, "Closed"),
+            WebSysWebSocketReadyState::Uninitialized => write!(f, "Uninitialized"),
         }
     }
 }
@@ -159,7 +161,7 @@ pub fn web_sys_websocket(
 > {
     let url = url.to_string();
 
-    let (state, set_state) = create_signal(WebSysWebSocketReadyState::Closed);
+    let (state, set_state) = create_signal(WebSysWebSocketReadyState::Uninitialized);
     let (message, set_message) = create_signal(None);
     let (message_bytes, set_message_bytes) = create_signal(None);
     let ws_ref: StoredValue<Option<WebSysWebSocket>> = store_value(None);
@@ -383,8 +385,11 @@ pub fn web_sys_websocket(
         }
     };
 
-    // Open connection (not called if option `immediate` is false)
     create_effect(move |_| {
+        // immediately set websocket as initilized since we are now WASM loaded
+        set_state.set(WebSysWebSocketReadyState::Closed);
+
+        // Open connection (not called if option `immediate` is false)
         if immediate {
             open();
         }
