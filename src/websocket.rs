@@ -314,7 +314,13 @@ pub fn web_sys_websocket(
                 // onclose handler
                 {
                     let onclose_closure = Closure::wrap(Box::new(move |e: CloseEvent| {
-                        if unmounted_ref.get_value() {
+                        // there is a possiblity that we navigated off the page and so the on_close was called
+                        // in this case we should use try_get_value because we might not have a valid ref anymore
+                        // in the above handlers we SHOULD have a valid ref and it SHOULD panic
+                        // but here we could be in this post-navigation state.
+                        // For the post-navigation state:
+                        //     try_get_value shall eval to true in the if block if there is no valid ref
+                        if unmounted_ref.try_get_value().unwrap_or(true) {
                             return;
                         }
 

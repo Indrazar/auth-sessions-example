@@ -142,6 +142,12 @@ pub fn HomepageLoggedIn(user_data: UserData) -> impl IntoView {
         <button on:click=close_connection disabled=move || !connected()>"Disconnect"</button>
         <button on:click=move |_| set_history.set(vec![]) disabled=move || history.get().len() <= 0>"Clear"</button>
         <p>"Websocket history:"</p>
+        //alternate method:
+        //{ move || {
+        //    history.get().into_iter()
+        //        .map(|n| view! { <div>{n}</div> })
+        //        .collect::<Vec<_>>()
+        //}}
         <For
             each=move || history.get().into_iter().enumerate()
             key=|(index, _)| *index
