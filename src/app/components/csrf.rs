@@ -13,7 +13,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 #[component]
 pub fn CSRFField<I: 'static, O: 'static>(submit_action: Action<I, O>) -> impl IntoView {
     let csrf_resource = create_resource(
-        move || (use_location().search.get()), //submit_action.version().get()),
+        move || (), //use_location().search.get()), //submit_action.version().get()),
         move |_| {
             log::trace!("CSRF retriever running fetcher");
             issue_csrf()
@@ -21,7 +21,6 @@ pub fn CSRFField<I: 'static, O: 'static>(submit_action: Action<I, O>) -> impl In
     );
     let (csrf, set_csrf) = create_signal(String::default());
 
-    log!("page load");
     //create_effect(move |_| {
     //    csrf_resource.
     //});
