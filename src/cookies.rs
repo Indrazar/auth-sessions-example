@@ -2,6 +2,7 @@ use cfg_if::cfg_if;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::database::{associate_session, drop_session, validate_token};
+    use crate::defs::{DatabaseError, RouterError, AppError};
     use axum::{
         http::header::{COOKIE, SET_COOKIE},
         http::HeaderValue,
@@ -33,23 +34,18 @@ pub async fn destroy_session() {
     };
     // grab request's session
     let unverified_session_id = parse_session_req_parts_cookie(http_req);
-    drop_session(&unverified_session_id).await;
+    let _ = drop_session(&unverified_session_id).await;
 }
 
 #[cfg(feature = "ssr")]
-pub async fn issue_session_cookie(
-    user_id: Uuid,
-    session_id: String,
-) -> Result<(), ServerFnError> {
+pub async fn issue_session_cookie(user_id: Uuid, session_id: String) -> Result<(), AppError> {
     let response = match use_context::<leptos_axum::ResponseOptions>() {
-        Some(ro) => ro,
+        Some(ro) => Ok(ro),
         None => {
-            log::error!("no response options in issue_session_cookie");
-            return Err(ServerFnError::ServerError(String::from(
-                "Login Request failed.",
-            )));
+            log::error!("issue_session_cookie: no response options available");
+            Err(RouterError::HTTPRequestMissing)
         }
-    };
+    }?;
     let expire_time: DateTime<Utc> = Utc::now() + chrono::Duration::days(30);
     let date_string: String = expire_time.format("%a, %d %b %Y %H:%M:%S GMT").to_string();
     associate_session(user_id, &session_id, expire_time).await?;
@@ -65,11 +61,11 @@ pub async fn issue_session_cookie(
 }
 
 #[cfg(feature = "ssr")]
-pub async fn validate_session() -> Option<Uuid> {
+pub async fn validate_session() -> Result<Option<Uuid>, DatabaseError> {
     // grab request, bailing if there is none
     let http_req = match use_context::<RequestParts>() {
-        Some(rp) => rp,      // actual user request
-        None => return None, // no request, building routes in main.rs
+        Some(rp) => rp,          // actual user request
+        None => return Ok(None), // no request, building routes in main.rs
     };
     // grab request's session
     let unverified_session_id = parse_session_req_parts_cookie(http_req);

@@ -465,8 +465,8 @@ pub async fn axum_ws_handler(
     let unverified_session_id = parse_session_header_cookie(&cookies);
     let user_uuid = match validate_token_with_pool(unverified_session_id, app_state.pool).await
     {
-        Some(id) => id,
-        None => {
+        Ok(Some(id)) => id,
+        Ok(None) => {
             log::debug!(
                 "`{user_agent}` from {addr} wtih cookies {:#?} websocket rejected due to \
                  invalid session.",
@@ -474,6 +474,20 @@ pub async fn axum_ws_handler(
             );
             return (StatusCode::UNAUTHORIZED, "please sign in first").into_response();
         }
+        Err(e) => match e {
+            crate::defs::DatabaseError::CouldNotFindPool => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "try again later").into_response()
+            }
+            crate::defs::DatabaseError::QueryFailed => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "try again later").into_response()
+            }
+            crate::defs::DatabaseError::NoEntries => {
+                return (StatusCode::UNAUTHORIZED, "please sign in first").into_response()
+            }
+            crate::defs::DatabaseError::IncorrectRowsAffected => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, "try again later").into_response()
+            }
+        },
     };
     log::trace!("`{user_agent}` from {addr} websocket request accepted for uuid {user_uuid}.");
     // finalize the upgrade process by returning upgrade callback.

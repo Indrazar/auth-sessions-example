@@ -7,15 +7,15 @@ use leptos_meta::*;
 use thiserror::Error;
 
 #[derive(Clone, Debug, Error)]
-pub enum AppError {
+pub enum AppPageError {
     #[error("Not Found")]
     NotFound,
 }
 
-impl AppError {
+impl AppPageError {
     pub fn status_code(&self) -> StatusCode {
         match self {
-            AppError::NotFound => StatusCode::NOT_FOUND,
+            AppPageError::NotFound => StatusCode::NOT_FOUND,
         }
     }
 }
@@ -36,10 +36,10 @@ pub fn ErrorTemplate(
     };
     // Get Errors from Signal
     // Downcast lets us take a type that implements `std::error::Error`
-    let errors: Vec<AppError> = errors
+    let errors: Vec<AppPageError> = errors
         .get()
         .into_iter()
-        .filter_map(|(_k, v)| v.downcast_ref::<AppError>().cloned())
+        .filter_map(|(_k, v)| v.downcast_ref::<AppPageError>().cloned())
         .collect();
     println!("Errors: {errors:#?}");
 

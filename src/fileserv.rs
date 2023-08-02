@@ -12,7 +12,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use tower_http::services::ServeDir;
     use leptos::*;
     use crate::app::error_template::ErrorTemplate;
-    use crate::app::error_template::AppError;
+    use crate::app::error_template::AppPageError;
 }}
 
 #[cfg(feature = "ssr")]
@@ -29,7 +29,7 @@ pub async fn file_and_error_handler(
         res.into_response()
     } else {
         let mut errors = Errors::default();
-        errors.insert_with_default_key(AppError::NotFound);
+        errors.insert_with_default_key(AppPageError::NotFound);
         let handler = leptos_axum::render_app_to_stream(
             options.to_owned(),
             move || view! {<ErrorTemplate outside_errors=errors.clone()/>},

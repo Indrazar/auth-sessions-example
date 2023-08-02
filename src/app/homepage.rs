@@ -1,6 +1,6 @@
 use crate::{
     app::get_user_data,
-    database::UserData,
+    database::APIUserData,
     websocket::{
         web_sys_websocket, WebSysWebSocketOptions, WebSysWebSocketReadyState,
         WebSysWebsocketReturn,
@@ -17,7 +17,7 @@ pub fn HomePage() -> impl IntoView {
         <Transition
             fallback=move || view! {<p>"Loading..."</p>}
         >
-        {move || {
+        { move || {
             user_data.read().map(|data| match data {
                 Err(e) => view! {
                     <p>"There was an error loading the page."</p>
@@ -38,7 +38,7 @@ pub fn HomePage() -> impl IntoView {
 }
 
 #[component]
-pub fn HomepageLoggedIn(user_data: UserData) -> impl IntoView {
+pub fn HomepageLoggedIn(user_data: APIUserData) -> impl IntoView {
     let (history, set_history) = create_signal(vec![]);
 
     fn update_history(&history: &WriteSignal<Vec<String>>, message: String) {

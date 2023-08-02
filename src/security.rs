@@ -3,7 +3,7 @@ use cfg_if::cfg_if;
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::get_cookie_value;
     use crate::database::{register_user, unique_cred_check, retrieve_credentials, UniqueCredential};
-    use crate::defs::{self, ServerVars};
+    use crate::defs::*;
     use argon2::{
         password_hash::{PasswordVerifier, SaltString},
         Argon2, PasswordHash, PasswordHasher,
@@ -17,7 +17,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use leptos::*;
     use leptos_axum::RequestParts;
     use secrecy::{ExposeSecret, SecretString};
-    use std::{fmt, str::FromStr};
+    use std::str::FromStr;
     use uuid::Uuid;
 }}
 
@@ -45,19 +45,12 @@ pub fn generate_csrf() -> String {
 }
 
 #[cfg(feature = "ssr")]
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum CsrfError {
-    MultipleCookies,
-    NoMatchingCookie,
-}
-
-#[cfg(feature = "ssr")]
 pub fn validate_csrf(req: RequestParts, csrf_token: String) -> Result<(), CsrfError> {
     let csrf_server = match use_context::<ServerVars>() {
         Some(data) => data.csrf_server,
         None => {
             log::error!("could not retrieve servervars");
-            return Err(CsrfError::NoMatchingCookie);
+            return Err(CsrfError::ServerValMissing);
         }
     };
     let mut only_one = 0;
@@ -87,81 +80,6 @@ pub fn validate_csrf(req: RequestParts, csrf_token: String) -> Result<(), CsrfEr
 }
 
 #[cfg(feature = "ssr")]
-#[derive(Debug)]
-pub enum RegistrationError {
-    ServerError(ServerFnError),
-    CSRFError(CsrfError),
-    HTTPRequestMissing,
-    EmailNotMatching,
-    InvalidEmail,
-    PasswordNotMatching,
-    UsernameLength,
-    DisplayNameLength,
-    PasswordLength,
-    DisplayNameInvalidCharacters,
-    UniqueUsername,
-    UniqueDisplayName,
-}
-
-#[cfg(feature = "ssr")]
-impl From<ServerFnError> for RegistrationError {
-    fn from(item: ServerFnError) -> Self {
-        RegistrationError::ServerError(item)
-    }
-}
-
-#[cfg(feature = "ssr")]
-impl From<CsrfError> for RegistrationError {
-    fn from(item: CsrfError) -> Self {
-        RegistrationError::CSRFError(item)
-    }
-}
-
-#[cfg(feature = "ssr")]
-impl fmt::Display for RegistrationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            RegistrationError::ServerError(_) => {
-                write!(f, "Please try again in a few minutes after a page refresh.")
-            }
-            RegistrationError::CSRFError(_) => {
-                write!(f, "Please try again in a few minutes after a page refresh.")
-            }
-            RegistrationError::HTTPRequestMissing => {
-                write!(f, "Please try again in a few minutes after a page refresh.")
-            }
-            RegistrationError::EmailNotMatching => {
-                write!(f, "Provided emails do not match.")
-            }
-            RegistrationError::InvalidEmail => {
-                write!(f, "Provided email was invalid.")
-            }
-            RegistrationError::PasswordNotMatching => {
-                write!(f, "Provided passwords do not match.")
-            }
-            RegistrationError::PasswordLength => {
-                write!(f, "Provided password does not meet the length requirement.")
-            }
-            RegistrationError::UsernameLength => {
-                write!(f, "Provided username does not meet the length requirement.")
-            }
-            RegistrationError::DisplayNameLength => {
-                write!(f, "Provided username does not meet the length requirement.")
-            }
-            RegistrationError::DisplayNameInvalidCharacters => {
-                write!(f, "Provided display name contains disallowed characters.")
-            }
-            RegistrationError::UniqueUsername => {
-                write!(f, "Provided username is already taken.")
-            }
-            RegistrationError::UniqueDisplayName => {
-                write!(f, "Provided display name is already taken.")
-            }
-        }
-    }
-}
-
-#[cfg(feature = "ssr")]
 pub async fn validate_registration(
     csrf: String,
     username: String,
@@ -170,31 +88,36 @@ pub async fn validate_registration(
     email_confirmation: String,
     password: SecretString,
     password_confirmation: SecretString,
-) -> Result<Uuid, RegistrationError> {
+) -> Result<Uuid, AppError> {
     let http_req = match use_context::<leptos_axum::RequestParts>() {
         None => {
             log::error!("validate_registration: could not retrieve RequestParts");
-            return Err(RegistrationError::HTTPRequestMissing);
+            return Err(RouterError::HTTPRequestMissing.into());
         }
         Some(rp) => rp,
     };
     //validate token matches cookie
-    validate_csrf(http_req, csrf).map_err(|e| match e {
-        CsrfError::MultipleCookies => {
+    match validate_csrf(http_req, csrf) {
+        Err(CsrfError::MultipleCookies) => {
             log::trace!(
                 "validate_registration: multiple csrf cookies present on client request"
             );
-            e
+            return Err(CsrfError::MultipleCookies.into());
         }
-        CsrfError::NoMatchingCookie => {
-            log::trace!("signup: csrf did not match cookie");
-            e
+        Err(CsrfError::NoMatchingCookie) => {
+            log::trace!("validate_registration: csrf did not match cookie");
+            return Err(CsrfError::NoMatchingCookie.into());
         }
-    })?;
+        Err(CsrfError::ServerValMissing) => {
+            log::trace!("validate_registration: csrf server value could not be retrieved");
+            return Err(CsrfError::ServerValMissing.into());
+        }
+        Ok(_) => {}
+    };
     //validate email matches in both fields
     match email_confirmation.eq(&email) {
         false => {
-            return Err(RegistrationError::EmailNotMatching);
+            return Err(RegistrationError::EmailNotMatching.into());
         }
         true => {}
     };
@@ -204,35 +127,35 @@ pub async fn validate_registration(
         .eq(password.expose_secret())
     {
         false => {
-            return Err(RegistrationError::PasswordNotMatching);
+            return Err(RegistrationError::PasswordNotMatching.into());
         }
         true => {}
     };
     //validate password is within length requirements
-    if password.expose_secret().len() < defs::PASSWORD_MIN_LEN - 1
-        || password.expose_secret().len() > defs::PASSWORD_MAX_LEN
+    if password.expose_secret().len() < PASSWORD_MIN_LEN - 1
+        || password.expose_secret().len() > PASSWORD_MAX_LEN
     {
-        return Err(RegistrationError::PasswordLength);
+        return Err(RegistrationError::PasswordLength.into());
     }
     //validate username is within length requirements
-    if username.len() < defs::USERNAME_MIN_LEN - 1 || username.len() > defs::USERNAME_MAX_LEN {
-        return Err(RegistrationError::UsernameLength);
+    if username.len() < USERNAME_MIN_LEN - 1 || username.len() > USERNAME_MAX_LEN {
+        return Err(RegistrationError::UsernameLength.into());
     }
     //validate display_name is within length requirements
-    if display_name.len() < defs::DISPLAY_NAME_MIN_LEN - 1
-        || display_name.len() > defs::DISPLAY_NAME_MAX_LEN
+    if display_name.len() < DISPLAY_NAME_MIN_LEN - 1
+        || display_name.len() > DISPLAY_NAME_MAX_LEN
     {
-        return Err(RegistrationError::DisplayNameLength);
+        return Err(RegistrationError::DisplayNameLength.into());
     }
     //validate display_name meets the character restrictions
     for c in display_name.chars() {
-        if !defs::DISPLAY_NAME_VALID_CHARACTERS.contains(c) {
-            return Err(RegistrationError::DisplayNameInvalidCharacters);
+        if !DISPLAY_NAME_VALID_CHARACTERS.contains(c) {
+            return Err(RegistrationError::DisplayNameInvalidCharacters.into());
         }
     }
     //validate email is correct format
     if EmailAddress::from_str(email.as_str()).is_err() {
-        return Err(RegistrationError::InvalidEmail);
+        return Err(RegistrationError::InvalidEmail.into());
     }
     unique_cred_check(UniqueCredential::Username(username.clone())).await?;
     unique_cred_check(UniqueCredential::DisplayName(display_name.clone())).await?;
@@ -252,42 +175,39 @@ pub async fn validate_login(
     csrf: String,
     username: String,
     password: SecretString,
-) -> Result<Uuid, ServerFnError> {
+) -> Result<Uuid, AppError> {
     let http_req = match use_context::<leptos_axum::RequestParts>() {
         None => {
             log::error!("login: could not retrieve RequestParts");
-            return Err(ServerFnError::ServerError(String::from(
-                "Login Request failed.",
-            )));
+            Err(RouterError::HTTPRequestMissing)
         }
-        Some(rp) => rp,
-    };
+        Some(rp) => Ok(rp),
+    }?;
     //validate token matches cookie
-    validate_csrf(http_req, csrf).map_err(|e| match e {
-        CsrfError::MultipleCookies => {
+    match validate_csrf(http_req, csrf) {
+        Err(CsrfError::MultipleCookies) => {
             log::trace!("login: multiple cookies present on client request");
-            ServerFnError::ServerError(String::from("Login Request was invalid."))
+            Err(CsrfError::MultipleCookies)
         }
-        CsrfError::NoMatchingCookie => {
+        Err(CsrfError::NoMatchingCookie) => {
             log::trace!("login: csrf did not match cookie");
-            ServerFnError::ServerError(String::from("Login Request was invalid."))
+            Err(CsrfError::NoMatchingCookie)
         }
-    })?;
+        Err(CsrfError::ServerValMissing) => {
+            log::trace!("login: servervars are not available");
+            Err(CsrfError::ServerValMissing)
+        }
+        Ok(_) => Ok(()),
+    }?;
     //validate password is within length requirements
-    if password.expose_secret().len() < defs::PASSWORD_MIN_LEN - 1
-        || password.expose_secret().len() > defs::PASSWORD_MAX_LEN
+    if password.expose_secret().len() < PASSWORD_MIN_LEN - 1
+        || password.expose_secret().len() > PASSWORD_MAX_LEN
     {
-        return Err(ServerFnError::ServerError(String::from(
-            "Provided password does not meet the length requirement. Login Request was \
-             invalid.",
-        )));
+        return Err(RegistrationError::PasswordLength.into());
     }
     //validate username is within length requirements
-    if username.len() < defs::USERNAME_MIN_LEN - 1 || username.len() > defs::USERNAME_MAX_LEN {
-        return Err(ServerFnError::ServerError(String::from(
-            "Provided username does not meet the length requirement. Login Request was \
-             invalid.",
-        )));
+    if username.len() < USERNAME_MIN_LEN - 1 || username.len() > USERNAME_MAX_LEN {
+        return Err(RegistrationError::UsernameLength.into());
     }
     let id = validate_credentials(username.clone(), password).await?;
     log::trace!("login: successful login for user: {username}");
@@ -322,21 +242,20 @@ enum ValidateHashError {
 pub async fn validate_credentials(
     username: String,
     untrusted_password: SecretString,
-) -> Result<uuid::Uuid, ServerFnError> {
+) -> Result<uuid::Uuid, AppError> {
     let (true_uuid, stored_phc): (Uuid, SecretString) =
         match retrieve_credentials(&username).await {
-            Ok(Some(x)) => x,
+            Ok(Some(x)) => Ok(x),
             Ok(None) => {
+                let untrusted_password = untrusted_password.clone();
                 //execute some time wasting to prevent username enumeration
                 let _task =
                     tokio::task::spawn_blocking(move || spin_hash(untrusted_password)).await;
                 log::trace!("invalid login attempt on unregistered {username}");
-                return Err(ServerFnError::ServerError(String::from(
-                    "Login Request was invalid.",
-                )));
+                Err(LoginError::IncorrectCredentials.into())
             }
-            Err(e) => return Err(e),
-        };
+            Err(e) => Err(e),
+        }?;
     let task =
         tokio::task::spawn_blocking(move || verify_hash(stored_phc, untrusted_password)).await;
     match task {
@@ -344,21 +263,15 @@ pub async fn validate_credentials(
         Ok(Err(ValidateHashError::DatabaseError(e))) => {
             //database is possibly corrupted
             log::error!("could not parse PHC for {username} with error {e}");
-            Err(ServerFnError::ServerError(String::from(
-                "Login Request failed.",
-            )))
+            Err(AppError::Argon2Failure)
         }
         Ok(Err(ValidateHashError::VerifyError(e))) => {
             log::trace!("invalid password attempt for {username} with error {e}");
-            Err(ServerFnError::ServerError(String::from(
-                "Login Request was invalid.",
-            )))
+            Err(LoginError::IncorrectCredentials.into())
         }
         Err(tokio_err) => {
             log::error!("failed to spawn blocking tokio task: {tokio_err}");
-            Err(ServerFnError::ServerError(String::from(
-                "Login Request failed.",
-            )))
+            Err(AppError::TokioFailure)
         }
     }
 }
@@ -393,7 +306,7 @@ fn verify_easy_hash(input1: String, input2: String, expected_result: String) -> 
 }
 
 #[cfg(feature = "ssr")]
-fn gen_hash(input: SecretString) -> Result<String, ServerFnError> {
+fn gen_hash(input: SecretString) -> Result<String, AppError> {
     // forever TODO: improve salt and complextity of hashing as computers get better
     // and as people buy more PS5s and shove them in underwater hashing factories
     // reference this article:
@@ -401,15 +314,15 @@ fn gen_hash(input: SecretString) -> Result<String, ServerFnError> {
     // archive:
     // <https://web.archive.org/web/20230111040733/https://argon2-cffi.readthedocs.io/en/stable/parameters.html>
     let salt = SaltString::generate(&mut rand::thread_rng());
-    match Argon2::default().hash_password(input.expose_secret().as_bytes(), &salt) {
-        Ok(hash) => Ok(hash.to_string()),
-        Err(err) => {
-            log::error!("failed to produce hash of password in gen_hash: {err}");
-            Err(ServerFnError::ServerError(String::from(
-                "Signup Request failed.",
-            )))
-        }
-    }
+    Ok(
+        match Argon2::default().hash_password(input.expose_secret().as_bytes(), &salt) {
+            Ok(hash) => Ok(hash.to_string()),
+            Err(err) => {
+                log::error!("failed to produce hash of password in gen_hash: {err}");
+                Err(AppError::Argon2Failure)
+            }
+        }?,
+    )
 }
 
 #[cfg(feature = "ssr")]

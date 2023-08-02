@@ -6,7 +6,7 @@ use leptos_router::*;
 mod components;
 use components::{csrf::CSRFField, logheader::LogHeader};
 mod homepage;
-use crate::database::UserData;
+use crate::database::APIUserData;
 use crate::defs::*;
 use homepage::HomePage;
 
@@ -183,9 +183,9 @@ pub fn App() -> impl IntoView {
 }
 
 #[server(GetUserData, "/api")]
-pub async fn get_user_data() -> Result<Option<UserData>, ServerFnError> {
-    match validate_session().await {
-        Some(id) => Ok(crate::database::user_data(id).await),
+pub async fn get_user_data() -> Result<Option<APIUserData>, ServerFnError> {
+    match validate_session().await? {
+        Some(id) => Ok(Some(crate::database::user_data(id).await?)),
         None => Ok(None),
     }
 }
