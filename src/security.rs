@@ -40,8 +40,10 @@ pub fn generate_csrf() -> String {
         )
         .expect("to create header value"),
     );
-    log::trace!("provided a csrf cookie");
-    gen_easy_hash(csrf_cookie, csrf_server)
+
+    let result = gen_easy_hash(&csrf_cookie, &csrf_server);
+    log::trace!("provided csrf:\ncookie: {},\nhash: {}", csrf_cookie, result,);
+    result
 }
 
 #[cfg(feature = "ssr")]
@@ -278,7 +280,7 @@ pub async fn validate_credentials(
 
 #[cfg(feature = "ssr")]
 // hash that does not use salt and not for passwords
-fn gen_easy_hash(input1: String, input2: String) -> String {
+fn gen_easy_hash(input1: &String, input2: &String) -> String {
     // forever TODO: watch for updates regarding blake2
     // <https://github.com/RustCrypto/hashes#supported-algorithms>
     let mut hasher = Blake2s256::new();

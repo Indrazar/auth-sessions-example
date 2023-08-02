@@ -41,18 +41,18 @@ pub async fn user_data(id: Uuid) -> Result<APIUserData, AppError> {
     .await;
     let (display_name, button_presses): (String, i64) = match row {
         Ok(res) => Ok((res.display_name, res.button_presses)),
-        Err(e) => {
-            match e {
-                sqlx::Error::RowNotFound => {
-                    log::error!("database lookup for user_data on id {id} did not exist with error: {e}");
-                    Err(DatabaseError::NoEntries)
-                }
-                _ => {
-                    log::error!("database lookup for user_data on id {id} failed: {e}");
-                    Err(DatabaseError::QueryFailed)
-                }
+        Err(e) => match e {
+            sqlx::Error::RowNotFound => {
+                log::error!(
+                    "database lookup for user_data on id {id} did not exist with error: {e}"
+                );
+                Err(DatabaseError::NoEntries)
             }
-        }
+            _ => {
+                log::error!("database lookup for user_data on id {id} failed: {e}");
+                Err(DatabaseError::QueryFailed)
+            }
+        },
     }?;
     Ok(APIUserData {
         display_name,
@@ -77,8 +77,8 @@ pub async fn register_user(
     }?;
     let id = Uuid::now_v7();
     let query_res = sqlx::query!(
-        "INSERT INTO users (user_id, username, display_name, email, verified, password_hash, button_presses) \
-         VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO users (user_id, username, display_name, email, verified, password_hash, \
+         button_presses) VALUES (?, ?, ?, ?, ?, ?, ?)",
         id,
         username,
         display_name,
@@ -168,16 +168,17 @@ pub async fn drop_session(session_id: &String) -> Result<(), DatabaseError> {
                     "removal of session from database failed, rows_affected: {}",
                     val.rows_affected()
                 );
-                return Err(DatabaseError::IncorrectRowsAffected);
+                Err(DatabaseError::IncorrectRowsAffected)
+            } else {
+                log::trace!("session_id: {session_id} logged out: {:#?}", val);
+                Ok(())
             }
-            log::trace!("session_id: {session_id} logged out: {:#?}", val);
-            return Ok(());
         }
         Err(e) => {
             log::error!("removal of session from database failed: {e}");
-            return Err(DatabaseError::QueryFailed);
+            Err(DatabaseError::QueryFailed)
         }
-    };
+    }
 }
 
 #[cfg(feature = "ssr")]
@@ -393,7 +394,7 @@ async fn email_check(email: String) -> Result<(), AppError> {
         },
     }?;
     Ok(if display_exists {
-        Err(RegistrationError::UniqueDisplayName)
+        Err(RegistrationError::UniqueEmail)
     } else {
         Ok(())
     }?)

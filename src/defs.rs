@@ -1,5 +1,5 @@
 use const_format::formatcp;
-use leptos::ServerFnError;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Username max length limit
@@ -34,10 +34,10 @@ use cfg_if::cfg_if;
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
-        use leptos::LeptosOptions;
-        use sqlx::SqlitePool;
         use axum::extract::FromRef;
+        use leptos::{LeptosOptions, ServerFnError};
         use leptos_router::RouteListing;
+        use sqlx::SqlitePool;
 
         #[derive(Debug, Clone)]
         pub struct ServerVars {
@@ -54,8 +54,7 @@ cfg_if! {
     }
 }
 
-#[cfg(feature = "ssr")]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum AppError {
     Router(RouterError),
     Registration(RegistrationError),
@@ -64,7 +63,15 @@ pub enum AppError {
     CSRF(CsrfError),
     Argon2Failure,
     TokioFailure,
+    None,
 }
+
+//#[cfg(feature = "ssr")]
+//impl AppError {
+//    fn cbor(self) -> String {
+//        ciborium::into_writer
+//    }
+//}
 
 #[cfg(feature = "ssr")]
 impl From<AppError> for ServerFnError {
@@ -73,13 +80,11 @@ impl From<AppError> for ServerFnError {
     }
 }
 
-#[cfg(feature = "ssr")]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum RouterError {
     HTTPRequestMissing,
 }
 
-#[cfg(feature = "ssr")]
 impl From<RouterError> for AppError {
     fn from(item: RouterError) -> Self {
         AppError::Router(item)
@@ -93,8 +98,7 @@ impl From<RouterError> for ServerFnError {
     }
 }
 
-#[cfg(feature = "ssr")]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum RegistrationError {
     EmailNotMatching,
     InvalidEmail,
@@ -105,9 +109,9 @@ pub enum RegistrationError {
     DisplayNameInvalidCharacters,
     UniqueUsername,
     UniqueDisplayName,
+    //UniqueEmail,
 }
 
-#[cfg(feature = "ssr")]
 impl From<RegistrationError> for AppError {
     fn from(item: RegistrationError) -> Self {
         AppError::Registration(item)
@@ -121,15 +125,13 @@ impl From<RegistrationError> for ServerFnError {
     }
 }
 
-#[cfg(feature = "ssr")]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum CsrfError {
     MultipleCookies,
     NoMatchingCookie,
     ServerValMissing,
 }
 
-#[cfg(feature = "ssr")]
 impl From<CsrfError> for AppError {
     fn from(item: CsrfError) -> Self {
         AppError::CSRF(item)
@@ -143,8 +145,7 @@ impl From<CsrfError> for ServerFnError {
     }
 }
 
-#[cfg(feature = "ssr")]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum DatabaseError {
     CouldNotFindPool,
     QueryFailed,
@@ -152,7 +153,6 @@ pub enum DatabaseError {
     IncorrectRowsAffected,
 }
 
-#[cfg(feature = "ssr")]
 impl From<DatabaseError> for AppError {
     fn from(item: DatabaseError) -> Self {
         AppError::Database(item)
@@ -166,13 +166,11 @@ impl From<DatabaseError> for ServerFnError {
     }
 }
 
-#[cfg(feature = "ssr")]
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum LoginError {
     IncorrectCredentials,
 }
 
-#[cfg(feature = "ssr")]
 impl From<LoginError> for AppError {
     fn from(item: LoginError) -> Self {
         AppError::Login(item)
@@ -186,7 +184,6 @@ impl From<LoginError> for ServerFnError {
     }
 }
 
-#[cfg(feature = "ssr")]
 impl fmt::Display for AppError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -211,11 +208,13 @@ impl fmt::Display for AppError {
             AppError::TokioFailure => {
                 write!(f, "Internal Server Error")
             }
+            AppError::None => {
+                write!(f, "")
+            }
         }
     }
 }
 
-#[cfg(feature = "ssr")]
 impl fmt::Display for RouterError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -226,7 +225,6 @@ impl fmt::Display for RouterError {
     }
 }
 
-#[cfg(feature = "ssr")]
 impl fmt::Display for RegistrationError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -256,12 +254,13 @@ impl fmt::Display for RegistrationError {
             }
             RegistrationError::UniqueDisplayName => {
                 write!(f, "Provided display name is already taken.")
-            }
+            } //RegistrationError::UniqueEmail => {
+              //    write!(f, "Provided email is already in use.")
+              //}
         }
     }
 }
 
-#[cfg(feature = "ssr")]
 impl fmt::Display for CsrfError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -278,7 +277,6 @@ impl fmt::Display for CsrfError {
     }
 }
 
-#[cfg(feature = "ssr")]
 impl fmt::Display for LoginError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -287,7 +285,6 @@ impl fmt::Display for LoginError {
     }
 }
 
-#[cfg(feature = "ssr")]
 impl fmt::Display for DatabaseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

@@ -6,8 +6,7 @@ use leptos_router::*;
 mod components;
 use components::{csrf::CSRFField, logheader::LogHeader};
 mod homepage;
-use crate::database::APIUserData;
-use crate::defs::*;
+use crate::{database::APIUserData, defs::*};
 use homepage::HomePage;
 
 cfg_if! { if #[cfg(feature = "ssr")] {
@@ -196,19 +195,19 @@ pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView 
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
-    let (login_result, set_login_result) = create_signal(" ".to_string());
+    //let (login_result, set_login_result) = create_signal(" ".to_string());
 
-    create_effect(move |_| {
-        action.version().get();
-        match action.value().get() {
-            Some(Err(ServerFnError::ServerError(e))) => set_login_result.set(e.to_string()),
-            _ => return,
-        };
-    });
+    //create_effect(move |_| {
+    //    action.version().get();
+    //    match action.value().get() {
+    //        Some(Err(ServerFnError::ServerError(e))) => set_login_result.set(e.to_string()),
+    //        _ => return,
+    //    };
+    //});
 
     view! {
         <ActionForm action=action>
-                <CSRFField/>
+                <CSRFField submit_action=action/>
                 <p>
                     <label for="username">"Username:"</label>
                     <input type="text" maxlength=USERNAME_MAX_LEN_STR minlength=USERNAME_MIN_LEN_STR name="username" required value/>
@@ -219,7 +218,7 @@ pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView 
                 </p>
                     <input type="submit" disabled=submit_disabled value="Login"/>
                 <p>
-                    {login_result}
+                    //{login_result}
                 </p>
             </ActionForm>
         <p><a href="/">"Return to landing page"</a></p>
@@ -243,25 +242,31 @@ pub async fn login(
 /// uses Double Submit Cookie method to prevent CSRF
 /// [https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#double-submit-cookie]
 #[component]
-pub fn Signup(action: Action<Signup, Result<String, ServerFnError>>) -> impl IntoView {
+pub fn Signup(action: Action<Signup, Result<(), ServerFnError>>) -> impl IntoView {
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
-    let (signup_result, set_signup_result) = create_signal(String::default());
+    let query = use_query_map();
+    let resources = create_resource(
+        move || query.get().get("e").unwrap_or(&(String::default())).clone(),
+        move |e| async move {
+            let x: AppError = serde_json::from_str(e.as_str()).unwrap_or(AppError::None);
+            format!("{}", x)
+        },
+    );
 
-    create_effect(move |_| match action.value().get() {
-        Some(Ok(res)) => set_signup_result.set(res),
-        Some(Err(e)) => set_signup_result.set(format!("Error processing request: {e}")),
-        None => {}
-    });
+    //let (signup_result, set_signup_result) = create_signal(String::default());
+
+    //create_effect(move |_| match action.value().get() {
+    //    Some(Ok(res)) => set_signup_result.set(res),
+    //    Some(Err(e)) => set_signup_result.set(format!("Error processing request: {e}")),
+    //    None => {}
+    //});
 
     view! {
         <h2>"Sign Up"</h2>
         <p>
             <ActionForm action=action>
-                <p>
-                    <CSRFField/>
-                </p>
                 <p>
                     <label for="username">"Username:"</label>
                     <input type="text" maxlength=USERNAME_MAX_LEN_STR minlength=USERNAME_MIN_LEN_STR name="username" required class="auth-input"/>
@@ -288,12 +293,12 @@ pub fn Signup(action: Action<Signup, Result<String, ServerFnError>>) -> impl Int
                 </p>
                     <input type="submit" disabled=submit_disabled value="Sign Up"/>
                 <p>
-                    {signup_result}
+                <Transition fallback=move || view! { "" }>
+                    {move || { resources.read() } }
+                 </Transition>
                 </p>
+                <CSRFField submit_action=action/>
             </ActionForm>
-        </p>
-        <p>
-
         </p>
         <a href="/">"Go Back"</a>
     }
@@ -308,7 +313,7 @@ pub async fn signup(
     email_confirmation: String,
     password: String,
     password_confirmation: String,
-) -> Result<String, ServerFnError> {
+) -> Result<(), ServerFnError> {
     let user_id = match validate_registration(
         csrf,
         username,
@@ -322,13 +327,14 @@ pub async fn signup(
     {
         Ok(id) => id,
         Err(e) => {
-            return Ok(format!("{e}"));
+            redirect(format!("/signup?e={}", e.ser().unwrap_or("0".to_string())).as_str());
+            return Ok(());
         }
     };
     let session_id = gen_128bit_base64();
     issue_session_cookie(user_id, session_id).await?;
     redirect("/");
-    Ok(String::from("Registration Successful"))
+    Ok(())
 }
 
 #[component]
