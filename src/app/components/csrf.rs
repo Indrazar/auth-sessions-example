@@ -11,14 +11,7 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 #[allow(unused_braces)]
 #[component]
 pub fn CSRFField() -> impl IntoView {
-    let csrf_action = create_server_action::<IssueCSRF>();
-    let csrf_resource = create_resource(
-        move || (csrf_action.version().get()),
-        move |_| {
-            //log::trace!("CSRF retriever running fetcher");
-            issue_csrf()
-        },
-    );
+    let csrf_resource = create_resource(move || (), move |_| issue_csrf());
 
     view! {
         <Suspense fallback=move || view! { "Loading..." }>
