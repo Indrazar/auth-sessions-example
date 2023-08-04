@@ -2,6 +2,14 @@ use const_format::formatcp;
 use leptos::ServerFnError;
 use std::fmt;
 
+// site domain name
+pub const SITE_DOMAIN: &str = dotenvy_macro::dotenv!("SITE_DOMAIN");
+// site websocket location
+// websocket code requires wss:// with /ws on the end
+pub const WEBSOCKET_URL: &str = formatcp!("wss://{SITE_DOMAIN}/ws");
+// directive must be ws:// without /ws on the end
+pub const WEBSOCKET_DIRECTIVE_URL: &str = formatcp!("ws://{SITE_DOMAIN}/");
+
 /// Username max length limit
 pub const USERNAME_MAX_LEN: usize = 32;
 pub const USERNAME_MAX_LEN_STR: &str = formatcp!("{USERNAME_MAX_LEN}");

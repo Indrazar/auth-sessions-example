@@ -13,6 +13,7 @@ use homepage::HomePage;
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::{validate_session, issue_session_cookie, destroy_session};
     use crate::security::{validate_login, gen_128bit_base64, validate_registration};
+    use crate::defs::{SITE_DOMAIN, WEBSOCKET_DIRECTIVE_URL};
     use axum::{
         http::{HeaderValue, header::CONTENT_TYPE}
     };
@@ -54,13 +55,13 @@ fn set_headers() {
             // loading WASM requires 'unsafe-inline' 'unsafe-eval'
             // or
             // script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval'
-            // for debug we add:
+            // for debug we add the cargo leptos websocket:
             //     connect-src ws://127.0.0.1:3001/
             format!(
                 "default-src 'self';\
                 script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';\
                 style-src 'nonce-{nonce}';\
-                connect-src 'self' ws://127.0.0.1:3001/ ws://127.0.0.1:3000/"
+                connect-src 'self' ws://127.0.0.1:3001/ {WEBSOCKET_DIRECTIVE_URL}",
             )
             .as_str(),
         )
@@ -73,13 +74,13 @@ fn set_headers() {
             // loading WASM requires 'unsafe-inline' 'unsafe-eval'
             // or
             // script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval'
-            // for debug we remove:
+            // for debug we remove the cargo leptos websocket:
             //     connect-src ws://127.0.0.1:3001/
             format!(
                 "default-src 'self';\
                 script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';\
                 style-src 'nonce-{nonce}';\
-                connect-src 'self' ws://127.0.0.1:3000/"
+                connect-src 'self' {WEBSOCKET_DIRECTIVE_URL}",
             )
             .as_str(),
         )

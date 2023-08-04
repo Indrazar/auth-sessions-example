@@ -212,7 +212,6 @@ dependencies = [
  "sqlx",
  "thiserror",
  "tokio",
- "tokio-tungstenite 0.20.0",
  "tower",
  "tower-http",
  "uuid",
@@ -228,9 +227,9 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "axum"
-version = "0.6.19"
+version = "0.6.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6a1de45611fdb535bfde7b7de4fd54f4fd2b17b1737c0a59b69bf9b92074b8c"
+checksum = "3b829e4e32b91e643de6eafe82b1d90675f5874230191a4ffbc1b336dec4d6bf"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -257,7 +256,7 @@ dependencies = [
  "sha1",
  "sync_wrapper",
  "tokio",
- "tokio-tungstenite 0.19.0",
+ "tokio-tungstenite",
  "tower",
  "tower-layer",
  "tower-service",
@@ -764,9 +763,9 @@ checksum = "c2e66c9d817f1720209181c316d28635c050fa304f9c79e47a520882661b7308"
 
 [[package]]
 name = "default-struct-builder"
-version = "0.4.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d935de49bbc61cf2487127ec53de614d7aabe0e5932cb6b1880f386976e9b4a"
+checksum = "f8fa90da96b8fd491f5754d1f7a731f73921e3b7aa0ce333c821a0e43666ac14"
 dependencies = [
  "darling 0.20.3",
  "proc-macro2",
@@ -1518,7 +1517,7 @@ dependencies = [
 [[package]]
 name = "leptos"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "cfg-if 1.0.0",
  "leptos_config",
@@ -1534,7 +1533,7 @@ dependencies = [
 [[package]]
 name = "leptos_axum"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "axum",
  "futures",
@@ -1555,7 +1554,7 @@ dependencies = [
 [[package]]
 name = "leptos_config"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "config",
  "regex",
@@ -1567,7 +1566,7 @@ dependencies = [
 [[package]]
 name = "leptos_dom"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "async-recursion",
  "base64 0.21.2",
@@ -1598,7 +1597,7 @@ dependencies = [
 [[package]]
 name = "leptos_hot_reload"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "anyhow",
  "camino",
@@ -1615,7 +1614,7 @@ dependencies = [
 [[package]]
 name = "leptos_integration_utils"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "futures",
  "leptos",
@@ -1628,7 +1627,7 @@ dependencies = [
 [[package]]
 name = "leptos_macro"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "attribute-derive",
  "cfg-if 1.0.0",
@@ -1650,7 +1649,7 @@ dependencies = [
 [[package]]
 name = "leptos_meta"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "cfg-if 1.0.0",
  "indexmap 2.0.0",
@@ -1663,7 +1662,7 @@ dependencies = [
 [[package]]
 name = "leptos_reactive"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "base64 0.21.2",
  "cfg-if 1.0.0",
@@ -1687,7 +1686,7 @@ dependencies = [
 [[package]]
 name = "leptos_router"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "cached",
  "cfg-if 1.0.0",
@@ -1716,7 +1715,7 @@ dependencies = [
 [[package]]
 name = "leptos_server"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "inventory",
  "lazy_static",
@@ -1809,9 +1808,9 @@ dependencies = [
 
 [[package]]
 name = "matchit"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67827e6ea8ee8a7c4a72227ef4fc08957040acffdb5f122733b24fa12daff41b"
+checksum = "ed1202b2a6f884ae56f04cff409ab315c5ce26b5e58d7412e484f01fd52f52ef"
 
 [[package]]
 name = "md-5"
@@ -2562,9 +2561,9 @@ checksum = "4c309e515543e67811222dbc9e3dd7e1056279b782e1dacffe4242b718734fb6"
 
 [[package]]
 name = "serde"
-version = "1.0.180"
+version = "1.0.181"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ea67f183f058fe88a4e3ec6e2788e003840893b91bac4559cabedd00863b3ed"
+checksum = "6d3e73c93c3240c0bda063c239298e633114c69a888c3e37ca8bb33f343e9890"
 dependencies = [
  "serde_derive",
 ]
@@ -2582,9 +2581,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.180"
+version = "1.0.181"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "24e744d7782b686ab3b73267ef05697159cc0e5abbed3f47f9933165e5219036"
+checksum = "be02f6cb0cd3a5ec20bbcfbcbd749f57daddb1a0882dc2e46a6c236c90b977ed"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2647,7 +2646,7 @@ dependencies = [
 [[package]]
 name = "server_fn"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "ciborium",
  "const_format",
@@ -2671,7 +2670,7 @@ dependencies = [
 [[package]]
 name = "server_fn_macro"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "const_format",
  "proc-macro-error",
@@ -2685,7 +2684,7 @@ dependencies = [
 [[package]]
 name = "server_fn_macro_default"
 version = "0.5.0-alpha2"
-source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#15f91c2494d78204f95b7758865ce7a9ba56844a"
+source = "git+https://github.com/leptos-rs/leptos?branch=effect-cleanups#73bd43cba31438c27ac4d469d7181f6463bcfd9f"
 dependencies = [
  "server_fn_macro",
  "syn 2.0.28",
@@ -3215,18 +3214,6 @@ dependencies = [
 
 [[package]]
 name = "tokio-tungstenite"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec509ac96e9a0c43427c74f003127d953a265737636129424288d27cb5c4b12c"
-dependencies = [
- "futures-util",
- "log",
- "tokio",
- "tungstenite 0.19.0",
-]
-
-[[package]]
-name = "tokio-tungstenite"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b2dbec703c26b00d74844519606ef15d09a7d6857860f84ad223dec002ddea2"
@@ -3234,7 +3221,7 @@ dependencies = [
  "futures-util",
  "log",
  "tokio",
- "tungstenite 0.20.0",
+ "tungstenite",
 ]
 
 [[package]]
@@ -3354,25 +3341,6 @@ name = "try-lock"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3528ecfd12c466c6f163363caf2d02a71161dd5e1cc6ae7b34207ea2d42d81ed"
-
-[[package]]
-name = "tungstenite"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15fba1a6d6bb030745759a9a2a588bfe8490fc8b4751a277db3a0be1c9ebbf67"
-dependencies = [
- "byteorder",
- "bytes",
- "data-encoding",
- "http",
- "httparse",
- "log",
- "rand",
- "sha1",
- "thiserror",
- "url",
- "utf-8",
-]
 
 [[package]]
 name = "tungstenite"

@@ -1,6 +1,7 @@
 use crate::{
     app::get_user_data,
     database::APIUserData,
+    defs::WEBSOCKET_URL,
     websocket::{
         web_sys_websocket, WebSysWebSocketOptions, WebSysWebSocketReadyState,
         WebSysWebsocketReturn,
@@ -85,7 +86,7 @@ pub fn HomepageLoggedIn(user_data: APIUserData) -> impl IntoView {
         ..
         //ws not needed
     } = web_sys_websocket(
-        dotenvy_macro::dotenv!("WEBSOCKET_URL"),
+        WEBSOCKET_URL,
         WebSysWebSocketOptions::default()
             .immediate(false)
             .on_open(on_open_callback.clone())
