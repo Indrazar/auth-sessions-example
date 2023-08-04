@@ -13,7 +13,7 @@ use homepage::HomePage;
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::cookies::{validate_session, issue_session_cookie, destroy_session};
     use crate::security::{validate_login, gen_128bit_base64, validate_registration};
-    use crate::defs::{SITE_DOMAIN, WEBSOCKET_DIRECTIVE_URL};
+    use crate::defs::WEBSOCKET_DIRECTIVE_URL;
     use axum::{
         http::{HeaderValue, header::CONTENT_TYPE}
     };
@@ -210,18 +210,20 @@ pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView 
     view! {
         <ActionForm action=action>
                 <CSRFField/>
-                <p>
-                    <label for="username">"Username:"</label>
-                    <input type="text" maxlength=USERNAME_MAX_LEN_STR minlength=USERNAME_MIN_LEN_STR name="username" required value/>
-                </p>
-                <p>
-                    <label for="password">"Password:"</label>
-                    <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password" required value/>
-                </p>
-                    <input type="submit" disabled=submit_disabled value="Login"/>
-                <p>
+                <div>
+                    <label>"Username: "
+                        <input type="text" maxlength=USERNAME_MAX_LEN_STR minlength=USERNAME_MIN_LEN_STR name="username" required value/>
+                    </label>
+                </div>
+                <div>
+                    <label>"Password: "
+                        <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password" required value/>
+                    </label>
+                </div>
+                    <button type="submit" disabled=submit_disabled value="Login">"Login"</button>
+                <div>
                     {login_result}
-                </p>
+                </div>
             </ActionForm>
         <p><a href="/">"Return to landing page"</a></p>
     }
@@ -260,37 +262,41 @@ pub fn Signup(action: Action<Signup, Result<String, ServerFnError>>) -> impl Int
         <h2>"Sign Up"</h2>
         <p>
             <ActionForm action=action>
-                <p>
                     <CSRFField/>
-                </p>
-                <p>
-                    <label for="username">"Username:"</label>
-                    <input type="text" maxlength=USERNAME_MAX_LEN_STR minlength=USERNAME_MIN_LEN_STR name="username" required class="auth-input"/>
-                </p>
-                <p>
-                    <label for="display">"Display Name:"</label>
-                    <input type="text" maxlength=DISPLAY_NAME_MAX_LEN minlength=DISPLAY_NAME_MIN_LEN name="display" required/>
-                </p>
-                <p>
-                    <label for="email">"E-Mail Address:"</label>
-                    <input type="text" name="email" required/>
-                </p>
-                <p>
-                    <label for="email_confirmation">"E-Mail Address (Confirmation):"</label>
-                    <input type="text" name="email_confirmation" required/>
-                </p>
-                <p>
-                    <label for="password">"Password:"</label>
-                    <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password" required class="auth-input"/>
-                </p>
-                <p>
-                    <label for="password_confirmation">"Password (Confirmation):"</label>
-                    <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password_confirmation" required/>
-                </p>
-                    <input type="submit" disabled=submit_disabled value="Sign Up"/>
-                <p>
+                <div>
+                    <label>"Username: "
+                        <input type="text" maxlength=USERNAME_MAX_LEN_STR minlength=USERNAME_MIN_LEN_STR name="username" required class="auth-input"/>
+                    </label>
+                </div>
+                <div>
+                    <label>"Display Name: "
+                        <input type="text" maxlength=DISPLAY_NAME_MAX_LEN minlength=DISPLAY_NAME_MIN_LEN name="display" required/>
+                    </label>
+                </div>
+                <div>
+                    <label>"E-Mail Address: "
+                        <input type="email" name="email" required/>
+                    </label>
+                </div>
+                <div>
+                    <label>"E-Mail Address (Confirmation): "
+                        <input type="email" name="email_confirmation" required/>
+                    </label>
+                </div>
+                <div>
+                    <label>"Password: "
+                        <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password" required class="auth-input"/>
+                    </label>
+                </div>
+                <div>
+                    <label>"Password (Confirmation): "
+                        <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password_confirmation" required/>
+                    </label>
+                </div>
+                    <button type="submit" disabled=submit_disabled>"Sign Up"</button>
+                <div>
                     {signup_result}
-                </p>
+                </div>
             </ActionForm>
         </p>
         <p>
