@@ -54,13 +54,13 @@ fn set_headers() {
         HeaderValue::from_str(
             // loading WASM requires 'unsafe-inline' 'unsafe-eval'
             // or
-            // script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval'
+            // script-src 'strict-dynamic' 'nonce-{nonce}'
             // for debug we add the cargo leptos websocket:
             //     connect-src ws://127.0.0.1:3001/
             format!(
                 "default-src 'self';\
-                script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';\
-                style-src 'nonce-{nonce}';\
+                script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}';\
+                style-src 'nonce-{nonce}' 'self';\
                 connect-src 'self' ws://127.0.0.1:3001/ {WEBSOCKET_DIRECTIVE_URL}",
             )
             .as_str(),
@@ -73,13 +73,13 @@ fn set_headers() {
         HeaderValue::from_str(
             // loading WASM requires 'unsafe-inline' 'unsafe-eval'
             // or
-            // script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval'
+            // script-src 'strict-dynamic' 'nonce-{nonce}'
             // for debug we remove the cargo leptos websocket:
             //     connect-src ws://127.0.0.1:3001/
             format!(
                 "default-src 'self';\
-                script-src 'strict-dynamic' 'nonce-{nonce}' 'wasm-unsafe-eval';\
-                style-src 'nonce-{nonce}';\
+                script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}';\
+                style-src 'nonce-{nonce}' 'self';\
                 connect-src 'self' {WEBSOCKET_DIRECTIVE_URL}",
             )
             .as_str(),
