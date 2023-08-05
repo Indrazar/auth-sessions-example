@@ -173,9 +173,20 @@ pub fn App() -> impl IntoView {
                 <Route path="login" ssr=SsrMode::Async view=move || view! {
                     <Login action=login is_routing />
                 }/>
-                <Route path="settings" view=move || view! {
-                    <h1>"Settings"</h1>
-                    <Logout action=logout />
+                <ProtectedRoute
+                    path="settings"
+                    redirect_path="/"
+                    condition=move || {
+                        match user_data.read() {
+                            None => false,
+                            Some(Err(_)) => false,
+                            Some(Ok(None)) => false,
+                            Some(Ok(Some(_))) => true,
+                        }
+                    }
+                    view=move || view! {
+                        <h1>"Settings"</h1>
+                        <Logout action=logout />
                 }/>
             </Routes>
             </main>

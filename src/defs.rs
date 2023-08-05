@@ -1,5 +1,4 @@
 use const_format::formatcp;
-use leptos::ServerFnError;
 use std::fmt;
 
 // site domain name
@@ -42,7 +41,7 @@ use cfg_if::cfg_if;
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
-        use leptos::LeptosOptions;
+        use leptos::{LeptosOptions, ServerFnError};
         use sqlx::SqlitePool;
         use axum::extract::FromRef;
         use leptos_router::RouteListing;
