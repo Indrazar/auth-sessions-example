@@ -1,5 +1,4 @@
 use crate::{
-    app::get_user_data,
     database::APIUserData,
     defs::WEBSOCKET_URL,
     websocket::{
@@ -11,9 +10,9 @@ use leptos::*;
 use web_sys::{CloseEvent, Event}; //WebSocket as WebSysWebSocket};
 
 #[component]
-pub fn HomePage() -> impl IntoView {
-    let user_data = create_resource(move || (), move |_| get_user_data());
-
+pub fn HomePage(
+    user_data: Resource<(usize, usize, usize), Result<Option<APIUserData>, ServerFnError>>,
+) -> impl IntoView {
     view! {
         <Transition
             fallback=move || view! {<p>"Loading..."</p>}

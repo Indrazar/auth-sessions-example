@@ -97,8 +97,8 @@ pub fn App() -> impl IntoView {
     let login = create_server_action::<Login>();
     let logout = create_server_action::<Logout>();
     let signup = create_server_action::<Signup>();
-    //let (is_routing, set_is_routing) = create_signal(false);
-    let userdata = create_resource(
+    let (is_routing, set_is_routing) = create_signal(false);
+    let user_data = create_resource(
         move || {
             (
                 // changing these conditions may reduce "get_user_data" server calls
@@ -129,7 +129,7 @@ pub fn App() -> impl IntoView {
         // sets the document title
         <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
 
-        <Router> //set_is_routing>
+        <Router set_is_routing>
             <header>
                 <A href="/"><h1>"Auth-Sessions-Example"</h1></A>
                 <h2>"A Letpos HTTPS Auth Example"</h2>
@@ -138,7 +138,7 @@ pub fn App() -> impl IntoView {
                     fallback=move || view! { <span>"Loading..."</span> }
                 >
                 {move || {
-                    userdata.read().map(|user| match user {
+                    user_data.read().map(|user| match user {
                         Err(e) => view! {
                             <A href="/signup">"Signup"</A>", "
                             <A href="/login">"Login"</A>
@@ -165,13 +165,13 @@ pub fn App() -> impl IntoView {
             <main>
             <Routes>
                 <Route path="" view=move || view! {
-                    <HomePage />
+                    <HomePage user_data />
                 }/>
                 <Route path="signup" ssr=SsrMode::Async view=move || view! {
-                    <Signup action=signup />
+                    <Signup action=signup is_routing />
                 }/>
                 <Route path="login" ssr=SsrMode::Async view=move || view! {
-                    <Login action=login />
+                    <Login action=login is_routing />
                 }/>
                 <Route path="settings" view=move || view! {
                     <h1>"Settings"</h1>
@@ -193,7 +193,10 @@ pub async fn get_user_data() -> Result<Option<APIUserData>, ServerFnError> {
 
 /// Renders the non-logged in landing page.
 #[component]
-pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView {
+pub fn Login(
+    action: Action<Login, Result<String, ServerFnError>>,
+    is_routing: ReadSignal<bool>,
+) -> impl IntoView {
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
@@ -202,9 +205,15 @@ pub fn Login(action: Action<Login, Result<(), ServerFnError>>) -> impl IntoView 
     create_effect(move |_| {
         action.version().get();
         match action.value().get() {
+            Some(Ok(val)) => set_login_result.set(val),
             Some(Err(ServerFnError::ServerError(e))) => set_login_result.set(e.to_string()),
             _ => return,
         };
+    });
+
+    create_effect(move |_| {
+        is_routing.get();
+        set_login_result.set(String::default());
     });
 
     view! {
@@ -234,19 +243,25 @@ pub async fn login(
     csrf: String,
     username: String,
     password: String,
-) -> Result<(), ServerFnError> {
-    let user_id = validate_login(csrf, username, SecretString::from(password)).await?;
+) -> Result<String, ServerFnError> {
+    let user_id = match validate_login(csrf, username, SecretString::from(password)).await {
+        Ok(id) => id,
+        Err(e) => return Ok(format!("{}", e)),
+    };
     let session_id = gen_128bit_base64();
     issue_session_cookie(user_id, session_id).await?;
     redirect("/");
-    Ok(())
+    Ok(String::from("Login Successful"))
 }
 
 /// Renders the non-logged in signup page
 /// uses Double Submit Cookie method to prevent CSRF
 /// [https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#double-submit-cookie]
 #[component]
-pub fn Signup(action: Action<Signup, Result<String, ServerFnError>>) -> impl IntoView {
+pub fn Signup(
+    action: Action<Signup, Result<String, ServerFnError>>,
+    is_routing: ReadSignal<bool>,
+) -> impl IntoView {
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
@@ -256,6 +271,11 @@ pub fn Signup(action: Action<Signup, Result<String, ServerFnError>>) -> impl Int
         Some(Ok(res)) => set_signup_result.set(res),
         Some(Err(e)) => set_signup_result.set(format!("Error processing request: {e}")),
         None => {}
+    });
+
+    create_effect(move |_| {
+        is_routing.get();
+        set_signup_result.set(String::default());
     });
 
     view! {

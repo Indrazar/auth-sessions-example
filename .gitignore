@@ -22,4 +22,4 @@ self_signed_certs/
 .env
 
 # local database
-auth-sessions-example.db
+auth-sessions-example.db*

@@ -13,7 +13,7 @@ pub fn LogHeader() -> impl IntoView {
     view! {
         <p>
             <ActionForm action=log_header>
-                <input class="log_header" type="submit" value="Log Current Headers"/>
+                <button class="log_header" type="submit">"Log Current Headers"</button>
             </ActionForm>
         </p>
     }
