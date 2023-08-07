@@ -40,8 +40,10 @@ async fn main() {
              environment."
         ),
     };
-
-    let conf = leptos::get_configuration(Some("Cargo.toml"))
+    // Setting get_configuration(None) means we'll be using cargo-leptos's env values
+    // For deployment these variables are:
+    // listed in .env.example
+    let conf = leptos::get_configuration(None)
         .await
         .expect("Cargo.toml could not be parsed by leptos::get_configuration");
     let leptos_options = conf.leptos_options;
