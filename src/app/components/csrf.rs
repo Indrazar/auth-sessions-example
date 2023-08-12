@@ -16,7 +16,7 @@ pub fn CSRFField() -> impl IntoView {
     view! {
         <Suspense fallback=move || view! { "Loading..." }>
             {move || {
-                csrf_resource.read().map(|n| match n {
+                csrf_resource.get().map(|n| match n {
                     Err(e) => view! {
                         { format!("Page Load Failed: {e}. Please reload the page or try again later.") }
                     }.into_view(),

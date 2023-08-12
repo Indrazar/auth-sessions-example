@@ -138,7 +138,7 @@ pub fn App() -> impl IntoView {
                     fallback=move || view! { <span>"Loading..."</span> }
                 >
                 {move || {
-                    user_data.read().map(|user| match user {
+                    user_data.get().map(|user| match user {
                         Err(e) => view! {
                             <A href="/signup">"Signup"</A>", "
                             <A href="/login">"Login"</A>
@@ -177,7 +177,7 @@ pub fn App() -> impl IntoView {
                     path="settings"
                     redirect_path="/"
                     condition=move || {
-                        match user_data.read() {
+                        match user_data.get() {
                             None => false,
                             Some(Err(_)) => false,
                             Some(Ok(None)) => false,

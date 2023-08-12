@@ -18,7 +18,7 @@ pub fn HomePage(
             fallback=move || view! {<p>"Loading..."</p>}
         >
         { move || {
-            user_data.read().map(|data| match data {
+            user_data.get().map(|data| match data {
                 Err(e) => view! {
                     <p>"There was an error loading the page."</p>
                     <span>{format!("error: {}", e)}</span>
