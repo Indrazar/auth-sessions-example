@@ -26,6 +26,10 @@ This project follows `stable`.
 3. `cargo install sqlx-cli` - to install `sqlx`
 4. `npm install -g sass` - to install `dart-sass`
 
+## Linux Note
+
+Since this project is mostly worked on under Windows you will likely want to run `cargo update` before attempting to build on Linux.
+
 ## Installing OpenSSL on Windows
 
 [Guide from here](https://github.com/sfackler/rust-openssl/tree/5948898e54882c0bedd12d87569eb4dbee5bbca7#windows-msvc) (which has since been removed), but has been recently checked as working as recently as 2/12/2023. Instead of 1.x.x this was tested with the most recent 3.x.x and it did work at the time. The updated but far less detailed [guide is here](https://docs.rs/openssl/latest/openssl/#automatic). If you get OpenSSL installed some other way and have the environment variables the way rust openssl expects then jump to [Acquiring Root Certificates](#acquiring-root-certificates).
