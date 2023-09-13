@@ -61,7 +61,7 @@ fn set_headers() {
                 "default-src 'self';\
                 script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}';\
                 style-src 'nonce-{nonce}' 'self';\
-                connect-src 'self' ws://127.0.0.1:3001/ {WEBSOCKET_DIRECTIVE_URL}",
+                connect-src 'self' ws://localhost:3001/ ws://127.0.0.1:3001/ {WEBSOCKET_DIRECTIVE_URL};",
             )
             .as_str(),
         )
@@ -80,7 +80,7 @@ fn set_headers() {
                 "default-src 'self';\
                 script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}';\
                 style-src 'nonce-{nonce}' 'self';\
-                connect-src 'self' {WEBSOCKET_DIRECTIVE_URL}",
+                connect-src 'self' {WEBSOCKET_DIRECTIVE_URL};",
             )
             .as_str(),
         )
