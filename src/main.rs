@@ -98,7 +98,7 @@ async fn main() {
     };
 
     // Generate the list of routes in your Leptos App
-    let routes = generate_route_list(|| leptos::view! { <App/> }).await;
+    let routes = generate_route_list(|| leptos::view! { <App/> });
 
     //setup db pool
     let pool = SqlitePoolOptions::new()

@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 argon2 = { version = "0.5.0", features = ["std"], optional = true }
-axum = { version = "0.6", optional = true, features = ["headers", "ws"] }
+axum = { version = "0.6", optional = true, features = ["headers", "macros", "ws"] }
 axum-server = { version = "0.5", features = ["tls-rustls"], optional = true }
 base64 = { version = "0.21", features = ["std"], optional = true }
 blake2 = {version = "0.10.6", optional = true }

@@ -153,7 +153,7 @@ pub fn HomepageLoggedIn(user_data: APIUserData) -> impl IntoView {
         <For
             each=move || history.get().into_iter().enumerate()
             key=|(index, _)| *index
-            view=move |(_, message)| {
+            children=move |(_, message)| {
                 view! { <div>{message}</div> }
             }
         />
