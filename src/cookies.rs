@@ -8,8 +8,8 @@ cfg_if! { if #[cfg(feature = "ssr")] {
         http::HeaderValue,
     };
     use chrono::prelude::*;
-    use leptos::*;
-    use leptos_axum::RequestParts;
+    use leptos::prelude::*;
+    use http::request::Parts;
     use uuid::Uuid;
 }}
 
@@ -28,7 +28,7 @@ pub async fn destroy_session() {
         .expect("to create header value"),
     );
     // grab request, bailing if there is none
-    let http_req = match use_context::<RequestParts>() {
+    let http_req = match use_context::<Parts>() {
         Some(rp) => rp, // actual user request
         None => return, // no request, building routes in main.rs
     };
@@ -63,7 +63,7 @@ pub async fn issue_session_cookie(user_id: Uuid, session_id: String) -> Result<(
 #[cfg(feature = "ssr")]
 pub async fn validate_session() -> Result<Option<Uuid>, DatabaseError> {
     // grab request, bailing if there is none
-    let http_req = match use_context::<RequestParts>() {
+    let http_req = match use_context::<Parts>() {
         Some(rp) => rp,          // actual user request
         None => return Ok(None), // no request, building routes in main.rs
     };
@@ -74,15 +74,16 @@ pub async fn validate_session() -> Result<Option<Uuid>, DatabaseError> {
 }
 
 #[cfg(feature = "ssr")]
-pub fn parse_session_header_cookie(cookies: &axum::headers::Cookie) -> String {
-    if let Some(session) = cookies.get("SESSIONID") {
-        return session.to_string();
-    }
+pub fn parse_session_header_cookie(cookies_raw_string: &str) -> String {
+    log::error!("raw cookie analysis needed: {cookies_raw_string}");
+    //if let Some(session) = cookies.get("SESSIONID") {
+    //    return session.to_string();
+    //}
     String::default()
 }
 
 #[cfg(feature = "ssr")]
-pub fn parse_session_req_parts_cookie(req: RequestParts) -> String {
+pub fn parse_session_req_parts_cookie(req: Parts) -> String {
     for headercookie in req.headers.get_all(COOKIE).iter() {
         match headercookie.to_str() {
             Ok(cookie) => {

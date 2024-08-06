@@ -14,12 +14,12 @@ cfg_if! { if #[cfg(feature = "hydrate")] {
     pub fn hydrate() {
 
         use app::*;
-        use leptos::*;
+        use leptos::prelude::*;
 
         _ = console_log::init_with_level(log::Level::Debug);
         console_error_panic_hook::set_once();
 
-        leptos::mount_to_body(|| {
+        leptos::mount::mount_to_body(|| {
             view! { <App/> }
         });
     }

@@ -6,40 +6,43 @@ use crate::{
         WebSysWebsocketReturn,
     },
 };
-use leptos::*;
+use leptos::{either::Either, prelude::*};
 use web_sys::{CloseEvent, Event}; //WebSocket as WebSysWebSocket};
 
 #[component]
-pub fn HomePage(
-    user_data: Resource<(usize, usize, usize), Result<Option<APIUserData>, ServerFnError>>,
-) -> impl IntoView {
+pub fn HomePage() -> impl IntoView {
+    //user_data: leptos_reactive::Resource<(), Result<Option<APIUserData>, ServerFnError>>,
+    let user_data = use_context::<Result<Option<APIUserData>, ServerFnError>>();
     view! {
-        <Transition
-            fallback=move || view! {<p>"Loading..."</p>}
-        >
-        { move || {
-            user_data.get().map(|data| match data {
-                Err(e) => view! {
+        //<Transition
+        //    fallback=|| view! {<p>"Loading..."</p>}
+        //>
+        <h1>Homepage</h1>
+        { match user_data {
+                Some(Err(e)) => Either::Left(view! {
                     <p>"There was an error loading the page."</p>
                     <span>{format!("error: {}", e)}</span>
-                }.into_view(),
-                Ok(None) => view! {
-                    ""
-                }.into_view(),
-                Ok(Some(user_data)) => view! {
-                    <div class="main-text">
-                        <HomepageLoggedIn user_data/>
-                    </div>
-                }.into_view(),
-            })
+                }),
+                Some(Ok(inner)) => Either::Right(match inner {
+                    None => Either::Left(view! {""}),
+                    Some(user_data) => Either::Right(view! {
+                        <div class="main-text">
+                            <HomepageLoggedIn user_data/>
+                        </div>
+                    })
+                }),
+                None => Either::Left(view! {
+                    <p>"There was an error loading the page."</p>
+                    <span>{format!("error: no user data")}</span>
+                }),
         }}
-        </Transition>
+        //</Transition>
     }
 }
 
 #[component]
 pub fn HomepageLoggedIn(user_data: APIUserData) -> impl IntoView {
-    let (history, set_history) = create_signal(vec![]);
+    let (history, set_history) = signal(vec![]);
 
     fn update_history(&history: &WriteSignal<Vec<String>>, message: String) {
         let _ = &history.update(|history: &mut Vec<_>| history.push(message));
@@ -116,13 +119,13 @@ pub fn HomepageLoggedIn(user_data: APIUserData) -> impl IntoView {
 
     let status = move || ready_state.get().to_string();
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(m) = message.get() {
             update_history(&set_history, format! {"[message]: {:?}", m});
         };
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(m) = message_bytes.get() {
             update_history(&set_history, format! {"[message_bytes]: {:?}", m});
         };

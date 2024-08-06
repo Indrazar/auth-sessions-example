@@ -1,23 +1,26 @@
 use cfg_if::cfg_if;
-use leptos::*;
-use leptos_meta::*;
-use leptos_router::*;
-
+use leptos::{either::Either, prelude::*};
+use leptos_router::{
+    components::{ProtectedRoute, Route, Router, Routes, A},
+    SsrMode, StaticSegment,
+};
 mod components;
 use components::{csrf::CSRFField, logheader::LogHeader};
 mod homepage;
 use crate::database::APIUserData;
 use crate::defs::*;
+use leptos_meta::provide_meta_context;
+
 use homepage::HomePage;
 
+use leptos_meta::{Link, Stylesheet, Title};
+
 cfg_if! { if #[cfg(feature = "ssr")] {
-    use crate::cookies::{validate_session, issue_session_cookie, destroy_session};
-    use crate::security::{validate_login, gen_128bit_base64, validate_registration};
-    use crate::defs::WEBSOCKET_DIRECTIVE_URL;
-    use axum::{
-        http::{HeaderValue, header::CONTENT_TYPE}
-    };
-    use leptos::nonce::use_nonce;
+    use crate::cookies::{destroy_session, issue_session_cookie, validate_session};
+    use crate::security::{gen_128bit_base64, validate_login, validate_registration};
+    //use leptos_meta::{Meta, MetaTags};
+    use axum::http::{header::CONTENT_TYPE, HeaderValue};
+    //use leptos::attr::Nonce;
     use leptos_axum::redirect;
     use secrecy::SecretString;
 }}
@@ -94,20 +97,16 @@ fn set_headers() {
 
 #[component]
 pub fn App() -> impl IntoView {
-    let login = create_server_action::<Login>();
-    let logout = create_server_action::<Logout>();
-    let signup = create_server_action::<Signup>();
-    let (is_routing, set_is_routing) = create_signal(false);
-    let user_data = create_resource(
-        move || {
-            (
-                // changing these conditions may reduce "get_user_data" server calls
-                login.version().get(),
-                signup.version().get(),
-                logout.version().get(),
-            )
-        },
-        move |_| get_user_data(),
+    let login = ServerAction::<Login>::new();
+    let logout = ServerAction::<Logout>::new();
+    let signup = ServerAction::<Signup>::new();
+    let (is_routing, set_is_routing) = signal(false);
+    let user_data = Resource::new(move || (), move |_| get_user_data());
+    provide_context(
+        user_data
+            .get()
+            .map(|n| n.unwrap_or_default())
+            .unwrap_or_default(),
     );
 
     // Provides context that manages stylesheets, titles, meta tags, etc.
@@ -120,14 +119,16 @@ pub fn App() -> impl IntoView {
     }}
 
     view! {
-        <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
-        // injects a stylesheet into the document <head>
-        // id=leptos means cargo-leptos will hot-reload this stylesheet
-        <Stylesheet id="leptos" href="/pkg/auth_sessions_example.css"/>
-        //<script nonce=use_nonce />
+        <head>
+            <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
+            // injects a stylesheet into the document <head>
+            // id=leptos means cargo-leptos will hot-reload this stylesheet
+            <Stylesheet id="leptos" href="/pkg/auth_sessions_example.css"/>
+            //<script nonce=use_nonce />
 
-        // sets the document title
-        <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
+            // sets the document title
+            <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
+        </head>
 
         <Router set_is_routing>
             <header>
@@ -139,51 +140,56 @@ pub fn App() -> impl IntoView {
                 >
                 {move || {
                     user_data.get().map(|user| match user {
-                        Err(e) => view! {
+                        Err(e) => Either::Left(view! {
                             <A href="/signup">"Signup"</A>", "
                             <A href="/login">"Login"</A>
                             <br />
                             <span>{format!("Login error: {}", e)}</span>
-                        }.into_view(),
-                        Ok(None) => view! {
-                            <A href="/signup">"Signup"</A>", "
-                            <A href="/login">"Login"</A>
-                            <br />
-                            <span>"Logged out"</span>
-                        }.into_view(),
-                        Ok(Some(user)) => view! {
-                            <A href="/">"Home"</A>", "
-                            <A href="/settings">"Settings"</A>
-                            <br />
-                            <span>{format!("Logged in as: {}", user.display_name)}</span>
-                        }.into_view()
+                        }),
+                        Ok(inner) => Either::Right(
+                            match inner {
+                                None => Either::Left(view! {
+                                    <A href="/signup">"Signup"</A>", "
+                                    <A href="/login">"Login"</A>
+                                    <br />
+                                    <span>"Logged out"</span>
+                                }),
+                                Some(user) => Either::Right(view! {
+                                    <A href="/">"Home"</A>", "
+                                    <A href="/settings">"Settings"</A>
+                                    <br />
+                                    <span>{format!("Logged in as: {}", user.display_name)}</span>
+                                }),
+                            }
+                        )
                     })
                 }}
                 </Transition>
             </header>
             <div/>
             <main>
-            <Routes>
-                <Route path="" view=move || view! {
-                    <HomePage user_data />
-                }/>
-                <Route path="signup" ssr=SsrMode::Async view=move || view! {
-                    <Signup action=signup is_routing />
-                }/>
-                <Route path="login" ssr=SsrMode::Async view=move || view! {
-                    <Login action=login is_routing />
-                }/>
+            <Routes fallback=|| "Not Found.">
+            <Route path=StaticSegment("/") view=move || view! {
+                <HomePage/> // user_data
+            }/>
+            <Route path=StaticSegment("signup") ssr=SsrMode::Async view=move || view! {
+                <Signup action=signup is_routing />
+            }/>
+            <Route path=StaticSegment("login") ssr=SsrMode::Async view=move || view! {
+                <Login action=login is_routing />
+            }/>
                 <ProtectedRoute
-                    path="settings"
-                    redirect_path="/"
+                    path=StaticSegment("settings")
+                    redirect_path=|| {"/"}
                     condition=move || {
                         match user_data.get() {
-                            None => false,
-                            Some(Err(_)) => false,
-                            Some(Ok(None)) => false,
-                            Some(Ok(Some(_))) => true,
+                            None => Some(false),
+                            Some(Err(_)) => Some(false),
+                            Some(Ok(None)) => Some(false),
+                            Some(Ok(Some(_))) => Some(true),
                         }
                     }
+                    ssr=SsrMode::Async
                     view=move || view! {
                         <h1>"Settings"</h1>
                         <Logout action=logout />
@@ -204,16 +210,13 @@ pub async fn get_user_data() -> Result<Option<APIUserData>, ServerFnError> {
 
 /// Renders the non-logged in landing page.
 #[component]
-pub fn Login(
-    action: Action<Login, Result<String, ServerFnError>>,
-    is_routing: ReadSignal<bool>,
-) -> impl IntoView {
+pub fn Login(action: ServerAction<Login>, is_routing: ReadSignal<bool>) -> impl IntoView {
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
-    let (login_result, set_login_result) = create_signal(" ".to_string());
+    let (login_result, set_login_result) = signal(" ".to_string());
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         action.version().get();
         match action.value().get() {
             Some(Ok(val)) => set_login_result.set(val),
@@ -222,7 +225,7 @@ pub fn Login(
         };
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         is_routing.get();
         set_login_result.set(String::default());
     });
@@ -249,7 +252,7 @@ pub fn Login(
     }
 }
 
-#[server(Login, "/api")]
+#[server]
 pub async fn login(
     csrf: String,
     username: String,
@@ -257,7 +260,7 @@ pub async fn login(
 ) -> Result<String, ServerFnError> {
     let user_id = match validate_login(csrf, username, SecretString::from(password)).await {
         Ok(id) => id,
-        Err(e) => return Ok(format!("{}", e)),
+        Err(e) => return Ok(format!("{:?}", e)),
     };
     let session_id = gen_128bit_base64();
     issue_session_cookie(user_id, session_id).await?;
@@ -269,22 +272,19 @@ pub async fn login(
 /// uses Double Submit Cookie method to prevent CSRF
 /// [https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#double-submit-cookie]
 #[component]
-pub fn Signup(
-    action: Action<Signup, Result<String, ServerFnError>>,
-    is_routing: ReadSignal<bool>,
-) -> impl IntoView {
+pub fn Signup(action: ServerAction<Signup>, is_routing: ReadSignal<bool>) -> impl IntoView {
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
-    let (signup_result, set_signup_result) = create_signal(String::default());
+    let (signup_result, set_signup_result) = signal(String::default());
 
-    create_effect(move |_| match action.value().get() {
+    Effect::new(move |_| match action.value().get() {
         Some(Ok(res)) => set_signup_result.set(res),
         Some(Err(e)) => set_signup_result.set(format!("Error processing request: {e}")),
         None => {}
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         is_routing.get();
         set_signup_result.set(String::default());
     });
@@ -360,7 +360,7 @@ pub async fn signup(
     {
         Ok(id) => id,
         Err(e) => {
-            return Ok(format!("{e}"));
+            return Ok(format!("{:?}", e));
         }
     };
     let session_id = gen_128bit_base64();
@@ -370,7 +370,7 @@ pub async fn signup(
 }
 
 #[component]
-pub fn Logout(action: Action<Logout, Result<(), ServerFnError>>) -> impl IntoView {
+pub fn Logout(action: ServerAction<Logout>) -> impl IntoView {
     view! {
         <div id="loginbox">
             <ActionForm action=action>

@@ -1,5 +1,5 @@
 use const_format::formatcp;
-use std::fmt;
+//use std::fmt;
 
 // site domain name
 pub const SITE_DOMAIN: &str = dotenvy_macro::dotenv!("SITE_DOMAIN");
@@ -41,10 +41,10 @@ use cfg_if::cfg_if;
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
-        use leptos::{LeptosOptions, ServerFnError};
+        use leptos::prelude::*;
         use sqlx::SqlitePool;
         use axum::extract::FromRef;
-        use leptos_router::RouteListing;
+        use leptos_axum::AxumRouteListing;
 
         #[derive(Debug, Clone)]
         pub struct ServerVars {
@@ -55,7 +55,7 @@ cfg_if! {
         pub struct AppState {
             pub leptos_options: LeptosOptions,
             pub pool: SqlitePool,
-            pub routes: Vec<RouteListing>,
+            pub routes: Vec<AxumRouteListing>,
             pub vars: ServerVars,
         }
     }
@@ -194,8 +194,8 @@ impl From<LoginError> for ServerFnError {
 }
 
 #[cfg(feature = "ssr")]
-impl fmt::Display for AppError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AppError::Router(x) => {
                 write!(f, "{}", x)
@@ -223,8 +223,8 @@ impl fmt::Display for AppError {
 }
 
 #[cfg(feature = "ssr")]
-impl fmt::Display for RouterError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for RouterError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RouterError::HTTPRequestMissing => {
                 write!(f, "Please try again in a few minutes after a page refresh.")
@@ -234,8 +234,8 @@ impl fmt::Display for RouterError {
 }
 
 #[cfg(feature = "ssr")]
-impl fmt::Display for RegistrationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for RegistrationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RegistrationError::EmailNotMatching => {
                 write!(f, "Provided emails do not match.")
@@ -269,8 +269,8 @@ impl fmt::Display for RegistrationError {
 }
 
 #[cfg(feature = "ssr")]
-impl fmt::Display for CsrfError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for CsrfError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CsrfError::MultipleCookies => {
                 write!(f, "Please try again in a few minutes after a page refresh. If this error occurs again please clear your cookies for this website.")
@@ -286,8 +286,8 @@ impl fmt::Display for CsrfError {
 }
 
 #[cfg(feature = "ssr")]
-impl fmt::Display for LoginError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for LoginError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             LoginError::IncorrectCredentials => write!(f, "Login Request was invalid."),
         }
@@ -295,8 +295,8 @@ impl fmt::Display for LoginError {
 }
 
 #[cfg(feature = "ssr")]
-impl fmt::Display for DatabaseError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for DatabaseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             DatabaseError::CouldNotFindPool => {
                 write!(f, "Please try again in a few minutes after a page refresh.")

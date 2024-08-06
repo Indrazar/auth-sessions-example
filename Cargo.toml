@@ -8,9 +8,9 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 argon2 = { version = "0.5.0", features = ["std"], optional = true }
-axum = { version = "0.6", optional = true, features = ["headers", "macros", "ws"] }
-axum-server = { version = "0.5", features = ["tls-rustls"], optional = true }
-base64 = { version = "0.21", features = ["std"], optional = true }
+axum = { version = "0.7.5", optional = true, features = ["macros", "ws"] }
+axum-server = { version = "0.7.1", features = ["tls-rustls"], optional = true }
+base64 = { version = "0.22", features = ["std"], optional = true }
 blake2 = {version = "0.10.6", optional = true }
 cfg-if = "1"
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock", "std"] }
@@ -22,15 +22,17 @@ dotenvy = { version = "0.15", optional = true }
 dotenvy_macro = "0.15"
 email_address = { version = "0.2", optional = true }
 futures = "0.3"
-gloo-net = "0.4"
-http = "0.2"
+gloo-net = "0.6"
+http = "1.1"
 js-sys = "0.3"
 lazy_static = "1"
-leptos = { version = "0.5", default-features = false}
-leptos_axum = { version = "0.5", optional = true }
-leptos_meta = { version = "0.5", optional = true }
-leptos_reactive = { version = "0.5" }
-leptos_router = { version = "0.5", default-features = false }
+leptos = { version = "0.7.0-beta", default-features = false}
+leptos_axum = { version = "0.7.0-beta", optional = true }
+# leptos_dom = { version = "0.7.0-beta", optional = true }
+leptos_meta = { version = "0.7.0-beta" }
+leptos_router = { version = "0.7.0-beta", default-features = false }
+leptos_macro = { version = "0.7.0-beta" }
+leptos_reactive = {version = "0.7.0-beta", default-features = false }
 log = "0.4"
 mime = { version = "0.3", optional = true }
 secrecy = {version = "0.8.0", optional = true, features = ["serde"] }
@@ -38,32 +40,32 @@ rand = { version = "0.8", features = ["std", "std_rng"], optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 serde_json = "1.0"
-simple_logger = "4"
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"], optional = true }
+simple_logger = "5"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "sqlite", "chrono", "uuid"], optional = true }
 thiserror = "1.0"
 tokio = { version = "1.25", features = ["full"], optional = true }
 tower = { version = "0.4", optional = true }
-tower-http = { version = "0.4.0", features = ["fs", "compression-gzip", "trace"], optional = true }
+tower-http = { version = "0.5.0", features = ["fs", "compression-gzip", "trace"], optional = true }
 uuid = { version = "1", features = ["fast-rng", "std", "serde", "v4", "v7"], optional = true }
-wasm-bindgen = "0.2"
-web-sys = { version = "0.3", features = ["AbortController", "AbortSignal", "HtmlDocument"] }
+wasm-bindgen = "0.2.89"
+web-sys = { version = "0.3.66", features = ["AbortController", "AbortSignal", "HtmlDocument"] }
 
 [features]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
+hydrate = ["leptos/hydrate"]
 ssr = [
-    "axum",
+    "dep:axum",
     "axum-server",
-    "base64",
-    "blake2",
+    "dep:base64",
+    "dep:blake2",
     "dotenvy",
-    "tokio",
-    "tower",
-    "tower-http",
+    "dep:tokio",
+    "dep:tower",
+    "dep:tower-http",
     "leptos/ssr",
-    "leptos/nonce",
     "leptos_meta/ssr",
     "leptos_router/ssr",
-    "leptos_axum/nonce",
+    #"leptos_dom/nonce",
+    "dep:leptos_axum",
     "chrono",
     "mime",
     "sqlx",
@@ -81,6 +83,7 @@ denylist = [
     "tower-http",
     "tokio",
     "leptos_axum",
+    "sqlx",
 ]
 skip_feature_sets = [["ssr", "hydrate"]]
 

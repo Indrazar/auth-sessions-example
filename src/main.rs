@@ -23,7 +23,7 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
         body::Body as AxumBody,
     };
     use axum_server::tls_rustls::RustlsConfig;
-    use leptos::*;
+    use leptos::prelude::*;
     use leptos_axum::*;
     use std::{env, net::SocketAddr, path::PathBuf};
     use sqlx::sqlite::SqlitePoolOptions;
@@ -43,19 +43,20 @@ async fn main() {
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:
     // listed in .env.example
-    let conf = leptos::get_configuration(None)
-        .await
+    println!("reading config");
+    let conf = leptos::config::get_configuration(None)
         .expect("Cargo.toml could not be parsed by leptos::get_configuration");
     let leptos_options = conf.leptos_options;
     let addr_https = leptos_options.site_addr;
     let addr_http: SocketAddr = match leptos_options.env {
-        leptos_config::Env::PROD => env::var("LIVE_HTTP_REDIRECT")
+        Env::PROD => env::var("LIVE_HTTP_REDIRECT")
             .expect("LIVE_HTTP_REDIRECT not set")
             .parse()
             .expect("verify LIVE_HTTP_REDIRECT value"),
         // hard coded redirect
-        leptos_config::Env::DEV => SocketAddr::from(([127, 0, 0, 1], 80)),
+        Env::DEV => SocketAddr::from(([127, 0, 0, 1], 80)),
     };
+    println!("config read complete");
 
     let ports = Ports {
         http: addr_http.port(),
@@ -63,29 +64,32 @@ async fn main() {
     };
 
     // setup logging
+    println!("setup logging");
     match leptos_options.env {
         // when in PROD mode suppress non-error logs
-        leptos_config::Env::PROD => simple_logger::SimpleLogger::new()
+        Env::PROD => simple_logger::SimpleLogger::new()
             .with_level(log::LevelFilter::Error)
             .init()
             .expect("couldn't initialize logging"),
         // when in DEV mode suppress most logs from other crates, show all logs from this crate
-        leptos_config::Env::DEV => simple_logger::SimpleLogger::new()
+        Env::DEV => simple_logger::SimpleLogger::new()
             .with_level(log::LevelFilter::Warn)
             .with_module_level(leptos_options.output_name.as_str(), log::LevelFilter::Trace)
             .init()
             .expect("couldn't initialize logging"),
     };
     //the logging levels are: Error, Warn, Info, Debug, Trace
+    println!("logging set up");
 
+    println!("reading certs");
     let rustls_config = match leptos_options.env {
-        leptos_config::Env::PROD => RustlsConfig::from_pem_file(
+        Env::PROD => RustlsConfig::from_pem_file(
             PathBuf::from(env::var("LIVE_CERT_PEM").expect("LIVE_CERT_PEM not set")),
             PathBuf::from(env::var("LIVE_KEY_PEM").expect("LIVE_KEY_PEM not set")),
         )
         .await
         .expect("verify CERT_PEM and KEY_PEM values"),
-        leptos_config::Env::DEV => RustlsConfig::from_pem_file(
+        Env::DEV => RustlsConfig::from_pem_file(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join("self_signed_certs")
                 .join("certificate.pem"),
@@ -96,10 +100,9 @@ async fn main() {
         .await
         .expect("debug cert files missing in self_signed_certs"),
     };
+    println!("certs imported, but not checked");
 
-    // Generate the list of routes in your Leptos App
-    let routes = generate_route_list(|| leptos::view! { <App/> });
-
+    println!("setting up sqlite pool");
     //setup db pool
     let pool = SqlitePoolOptions::new()
         .connect(
@@ -114,6 +117,12 @@ async fn main() {
         .run(&pool)
         .await
         .expect("could not run SQLx migrations");
+    println!("sqlite up");
+
+    println!("generating routes, ignore next sql error during route generation only");
+    // Generate the list of routes in your Leptos App
+    let routes = leptos_axum::generate_route_list(App);
+    println!("routes generated");
 
     log::info!("Server process starting");
     log::info!("Server {:#?}", leptos_options);
@@ -145,6 +154,13 @@ async fn main() {
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
+
+    //axum::serve(
+    //    tokio::net::TcpListener::bind(addr).await.unwrap(),
+    //    redirect.into_make_service(),
+    //)
+    //.await
+    //.unwrap();
 }
 
 #[cfg(feature = "ssr")]
@@ -154,7 +170,7 @@ async fn leptos_routes_handler(
     req: Request<AxumBody>,
 ) -> Response {
     let handler = leptos_axum::render_route_with_context(
-        app_state.leptos_options.clone(),
+        //app_state.leptos_options.clone(),
         app_state.routes.clone(),
         move || {
             provide_context(app_state.pool.clone());
@@ -177,14 +193,14 @@ async fn server_fn_handler(
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
     log::debug!(
-        "server_fn_handler: path: {:?}, connect_info: {:?}",
-        path,
-        connect_info,
-    );
-    handle_server_fns_with_context(
+        "server_fn_handler: path: {:?}, headers: {:?}, query: {:?}, request: {:?}, connect_info: {:?}",
         path,
         headers,
         query,
+        request,
+        connect_info,
+    );
+    handle_server_fns_with_context(
         move || {
             provide_context(app_state.pool.clone());
             provide_context(app_state.vars.clone());
@@ -232,10 +248,12 @@ async fn redirect_http_to_https(ports: Ports) {
     let addr = SocketAddr::from(([127, 0, 0, 1], ports.http));
     log::info!("http redirect listening on {}", addr);
 
-    axum::Server::bind(&addr)
-        .serve(redirect.into_make_service())
-        .await
-        .unwrap();
+    axum::serve(
+        tokio::net::TcpListener::bind(addr).await.unwrap(),
+        redirect.into_make_service(),
+    )
+    .await
+    .unwrap();
 }
 
 #[cfg(not(feature = "ssr"))]

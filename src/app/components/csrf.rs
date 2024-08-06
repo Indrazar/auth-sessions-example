@@ -1,8 +1,10 @@
 use cfg_if::cfg_if;
-use leptos::*;
+use leptos::{either::Either, prelude::*};
+use leptos_reactive::{create_resource, SignalGet};
 
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::security::generate_csrf;
+
 }}
 
 /// This component forces SSR to resolve in an async route.
@@ -11,27 +13,28 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 #[allow(unused_braces)]
 #[component]
 pub fn CSRFField() -> impl IntoView {
-    let csrf_resource = create_resource(move || (), move |_| issue_csrf());
+    let csrf_resource = create_resource(|| (), move |_| issue_csrf());
 
     view! {
-        <Suspense fallback=move || view! { "Loading..." }>
+        <Suspense fallback= || { "Loading..." }>
             {move || {
                 csrf_resource.get().map(|n| match n {
-                    Err(e) => view! {
+                    Err(e) => Either::Left(view! {
                         { format!("Page Load Failed: {e}. Please reload the page or try again later.") }
-                    }.into_view(),
-                    Ok(csrf_hash) => {
+                    }),
+                    Ok(csrf_hash) => Either::Right(
                         view! {
-                            <input type="hidden" name="csrf" value=csrf_hash/>}
-                        }.into_view()
-                    })
-                }
-            }
+                            <input type="hidden" name="csrf" value=csrf_hash/>
+                        }
+                    ),
+                })
+            }}
         </Suspense>
     }
 }
 
-#[server(IssueCSRF, "/api")]
+// #[server(IssueCSRF, "/api")]
+#[server]
 async fn issue_csrf() -> Result<String, ServerFnError> {
     Ok(generate_csrf())
 }

@@ -14,8 +14,8 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     };
     use blake2::{Blake2s256, Digest};
     use email_address::EmailAddress;
-    use leptos::*;
-    use leptos_axum::RequestParts;
+    use leptos::prelude::*;
+    use http::request::Parts;
     use secrecy::{ExposeSecret, SecretString};
     use std::str::FromStr;
     use uuid::Uuid;
@@ -45,7 +45,7 @@ pub fn generate_csrf() -> String {
 }
 
 #[cfg(feature = "ssr")]
-pub fn validate_csrf(req: RequestParts, csrf_token: String) -> Result<(), CsrfError> {
+pub fn validate_csrf(req: Parts, csrf_token: String) -> Result<(), CsrfError> {
     let csrf_server = match use_context::<ServerVars>() {
         Some(data) => data.csrf_server,
         None => {
@@ -89,7 +89,7 @@ pub async fn validate_registration(
     password: SecretString,
     password_confirmation: SecretString,
 ) -> Result<Uuid, AppError> {
-    let http_req = match use_context::<leptos_axum::RequestParts>() {
+    let http_req = match use_context::<Parts>() {
         None => {
             log::error!("validate_registration: could not retrieve RequestParts");
             return Err(RouterError::HTTPRequestMissing.into());
@@ -176,7 +176,7 @@ pub async fn validate_login(
     username: String,
     password: SecretString,
 ) -> Result<Uuid, AppError> {
-    let http_req = match use_context::<leptos_axum::RequestParts>() {
+    let http_req = match use_context::<Parts>() {
         None => {
             log::error!("login: could not retrieve RequestParts");
             Err(RouterError::HTTPRequestMissing)

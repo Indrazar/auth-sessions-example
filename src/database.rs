@@ -3,7 +3,7 @@ use cfg_if::cfg_if;
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::defs::{AppError, RegistrationError, DatabaseError};
     use chrono::prelude::*;
-    use leptos::*;
+    use leptos::prelude::*;
     use secrecy::SecretString;
     use sqlx::SqlitePool;
     use uuid::Uuid;

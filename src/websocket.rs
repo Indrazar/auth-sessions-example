@@ -1,7 +1,7 @@
 #![cfg_attr(feature = "ssr", allow(unused_variables, dead_code))]
 
 use default_struct_builder::DefaultBuilder;
-use leptos::{leptos_dom::helpers::TimeoutHandle, *};
+use leptos::{leptos_dom::helpers::TimeoutHandle, prelude::*};
 use std::{
     fmt::{self, Debug},
     rc::Rc,
@@ -9,17 +9,18 @@ use std::{
 use web_sys::{CloseEvent, Event, WebSocket as WebSysWebSocket};
 
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
-    use crate::{cookies::parse_session_header_cookie, database::validate_token_with_pool};
+    use crate::database::validate_token_with_pool;
+    use crate::cookies::parse_session_header_cookie;
     use crate::defs::AppState;
     use axum::{
         extract::{
             State,
             ws::{Message, WebSocket as AxumWebSocket, WebSocketUpgrade as AxumWebSocketUpgrade},
-            TypedHeader,
+            //Request,
             connect_info::ConnectInfo,
         },
         response::IntoResponse,
-        http::StatusCode,
+        http::{StatusCode, header::HeaderMap},
     };
     use std::{ops::ControlFlow, net::SocketAddr};
     //allows to split the websocket stream into separate TX and RX branches
@@ -161,32 +162,35 @@ pub fn web_sys_websocket(
 > {
     let url = url.to_string();
 
-    let (state, set_state) = create_signal(WebSysWebSocketReadyState::Uninitialized);
-    let (message, set_message) = create_signal(None);
-    let (message_bytes, set_message_bytes) = create_signal(None);
-    let ws_ref: StoredValue<Option<WebSysWebSocket>> = store_value(None);
+    let (state, set_state) = signal(WebSysWebSocketReadyState::Uninitialized);
+    let (message, set_message) = signal(None);
+    let (message_bytes, set_message_bytes) = signal(None);
+    let ws_ref: StoredValue<Option<WebSysWebSocket>, LocalStorage> =
+        StoredValue::new_local(None);
 
     let reconnect_limit = options.reconnect_limit;
 
-    let reconnect_timer_ref: StoredValue<Option<TimeoutHandle>> = store_value(None);
+    let reconnect_timer_ref: StoredValue<Option<TimeoutHandle>, LocalStorage> =
+        StoredValue::new_local(None);
     let immediate = options.immediate;
 
-    let reconnect_times_ref: StoredValue<u64> = store_value(0);
-    let unmounted_ref = store_value(false);
+    let reconnect_times_ref: StoredValue<u64, LocalStorage> = StoredValue::new_local(0);
+    let unmounted_ref = StoredValue::new_local(false);
 
-    let connect_ref: StoredValue<Option<Rc<dyn Fn()>>> = store_value(None);
+    let connect_ref: StoredValue<Option<Rc<dyn Fn()>>, LocalStorage> =
+        StoredValue::new_local(None);
 
     cfg_if::cfg_if! { if #[cfg(not(feature = "ssr"))] {
-        let on_open_ref = store_value(options.on_open);
-        let on_message_ref = store_value(options.on_message);
-        let on_message_bytes_ref = store_value(options.on_message_bytes);
-        let on_error_ref = store_value(options.on_error);
-        let on_close_ref = store_value(options.on_close);
+        let on_open_ref = StoredValue::new_local(options.on_open);
+        let on_message_ref = StoredValue::new_local(options.on_message);
+        let on_message_bytes_ref = StoredValue::new_local(options.on_message_bytes);
+        let on_error_ref = StoredValue::new_local(options.on_error);
+        let on_close_ref = StoredValue::new_local(options.on_close);
 
         let reconnect_interval = options.reconnect_interval;
         let protocols = options.protocols;
 
-        let reconnect_ref: StoredValue<Option<Rc<dyn Fn()>>> = store_value(None);
+        let reconnect_ref: StoredValue<Option<Rc<dyn Fn()>>, LocalStorage> = StoredValue::new_local(None);
         reconnect_ref.set_value({
             let ws = ws_ref.get_value();
             Some(Rc::new(move || {
@@ -385,7 +389,7 @@ pub fn web_sys_websocket(
         }
     };
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         // immediately set websocket as initilized since we are now WASM loaded
         set_state.set(WebSysWebSocketReadyState::Closed);
 
@@ -422,21 +426,26 @@ pub fn web_sys_websocket(
 #[cfg(feature = "ssr")]
 pub async fn axum_ws_handler(
     ws: AxumWebSocketUpgrade,
-    user_agent: Option<TypedHeader<axum::headers::UserAgent>>,
-    origin: Option<TypedHeader<axum::headers::Origin>>,
-    header_cookies: Option<TypedHeader<axum::headers::Cookie>>,
+    headers: HeaderMap,
     State(app_state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
-    let user_agent = if let Some(TypedHeader(user_agent)) = user_agent {
-        user_agent.to_string()
-    } else {
-        String::from("Unknown browser")
+    //user_agent: Option<TypedHeader<http::request::UserAgent>>,
+    //origin: Option<TypedHeader<http::request::Origin>>,
+    //header_cookies: Option<TypedHeader<http::headers::Cookie>>,
+    let user_agent = match headers.get(http::header::USER_AGENT) {
+        Some(thing) => match thing.to_str() {
+            Ok(agent) => agent,
+            Err(_) => "INVALID USER_AGENT ASCII",
+        },
+        None => "No USER_AGENT",
     };
-    let origin = if let Some(TypedHeader(origin)) = origin {
-        origin.to_string()
-    } else {
-        String::from("Unknown origin")
+    let origin = match headers.get(http::header::ORIGIN) {
+        Some(thing) => match thing.to_str() {
+            Ok(origin) => origin,
+            Err(e) => "INVALID ORIGIN ASCII",
+        },
+        None => "No ORIGIN",
     };
     let site_url = format!("https://{}", app_state.leptos_options.site_addr.to_string());
     // validate origin header
@@ -451,8 +460,16 @@ pub async fn axum_ws_handler(
         )
             .into_response();
     }
-    let cookies = match header_cookies {
-        Some(TypedHeader(cookies)) => cookies,
+    let cookies_raw = match headers.get(http::header::COOKIE) {
+        Some(thing) => match thing.to_str() {
+            Ok(cookie_raw_string) => cookie_raw_string,
+            Err(e) => {
+                log::debug!(
+                    "`{user_agent}` from {addr} wtih invalid cookie_raw_string rejected."
+                );
+                return (StatusCode::UNAUTHORIZED, "please sign in first").into_response();
+            }
+        },
         None => {
             log::debug!(
                 "`{user_agent}` from {addr} wtih no cookies websocket rejected due to no \
@@ -462,7 +479,7 @@ pub async fn axum_ws_handler(
         }
     };
     // validate Uuid and pass into handler
-    let unverified_session_id = parse_session_header_cookie(&cookies);
+    let unverified_session_id = parse_session_header_cookie(cookies_raw);
     let user_uuid = match validate_token_with_pool(unverified_session_id, app_state.pool).await
     {
         Ok(Some(id)) => id,
@@ -470,7 +487,7 @@ pub async fn axum_ws_handler(
             log::debug!(
                 "`{user_agent}` from {addr} wtih cookies {:#?} websocket rejected due to \
                  invalid session.",
-                cookies
+                cookies_raw
             );
             return (StatusCode::UNAUTHORIZED, "please sign in first").into_response();
         }
