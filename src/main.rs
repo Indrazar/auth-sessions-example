@@ -193,7 +193,7 @@ async fn server_fn_handler(
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
     log::debug!(
-        "server_fn_handler: path: {:?}, headers: {:?}, query: {:?}, request: {:?}, connect_info: {:?}",
+        "server_fn_handler: \n\n path: {:?}\n\n headers: {:?}\n\n query: {:?}\n\n request: {:?}\n\n connect_info: {:?}\n\n",
         path,
         headers,
         query,

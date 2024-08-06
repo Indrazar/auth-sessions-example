@@ -82,6 +82,19 @@ sqlx database create
 sqlx migrate run
 ```
 
+### Setup Troubleshooting on Windows
+
+Since axum-server now uses Amazon's AWS crytpographic libraries you may need to install the standalone LLVM complier if you get weird clang errors. [Amazon's Guide is here](https://aws.github.io/aws-lc-rs/requirements/windows). With LLVM installed set your environment variable to LLVM's bin directory.
+
+The default is here:
+```
+LIBCLANG_PATH = C:\Program Files\LLVM\bin
+```
+You will likely also need:
+```
+cargo install --force --locked bindgen-cli
+```
+
 ## Running in dev mode
 
 ```bash
