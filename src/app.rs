@@ -1,7 +1,7 @@
 use cfg_if::cfg_if;
 use leptos::{either::Either, prelude::*};
 use leptos_router::{
-    components::{ProtectedRoute, Route, Router, Routes, A},
+    components::{Redirect, Route, Router, Routes, A},
     SsrMode, StaticSegment,
 };
 mod components;
@@ -9,7 +9,7 @@ use components::{csrf::CSRFField, logheader::LogHeader};
 mod homepage;
 use crate::database::APIUserData;
 use crate::defs::*;
-use leptos_meta::provide_meta_context;
+use leptos_meta::{provide_meta_context, MetaTags};
 
 use homepage::HomePage;
 
@@ -21,11 +21,29 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     //use leptos_meta::{Meta, MetaTags};
     use axum::http::{header::CONTENT_TYPE, HeaderValue};
     //use leptos::attr::Nonce;
-    use leptos_axum::redirect;
+    use leptos_axum::redirect as axum_redirect;
     use secrecy::SecretString;
 }}
 
 pub mod error_template;
+
+//pub fn shell(options: LeptosOptions) -> impl IntoView {
+//    view! {
+//        <!DOCTYPE html>
+//        <html lang="en">
+//            <head>
+//                <meta charset="utf-8"/>
+//                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+//                <AutoReload options=options.clone() />
+//                <HydrationScripts options/>
+//                <MetaTags/>
+//            </head>
+//            <body>
+//                <App/>
+//            </body>
+//        </html>
+//    }
+//}
 
 #[cfg(feature = "ssr")]
 fn set_headers() {
@@ -34,6 +52,7 @@ fn set_headers() {
         None => return, // building routes in main.rs
     };
     let nonce = use_nonce().expect("a nonce to be made");
+
     //TODO remove after leptos sets any of these by default
     response.insert_header(
         CONTENT_TYPE,
@@ -101,6 +120,26 @@ fn set_headers() {
         axum::http::header::STRICT_TRANSPORT_SECURITY,
         HeaderValue::from_static("max-age=31536000"),
     )
+}
+
+// returns false if still waiting for resolution
+fn is_logged_in(user_data: Option<Result<Option<APIUserData>, ServerFnError>>) -> bool {
+    match user_data {
+        None => false,
+        Some(Err(_)) => false,
+        Some(Ok(None)) => false,
+        Some(Ok(Some(_))) => true,
+    }
+}
+
+//returns false if still waiting for resolution
+fn is_not_logged_in(user_data: Option<Result<Option<APIUserData>, ServerFnError>>) -> bool {
+    match user_data {
+        None => false,
+        Some(Err(_)) => false,
+        Some(Ok(None)) => true,
+        Some(Ok(Some(_))) => false,
+    }
 }
 
 #[component]
@@ -179,29 +218,23 @@ pub fn App() -> impl IntoView {
             <div/>
             <main>
             <Routes fallback=|| "Not Found.">
-            <Route path=StaticSegment("/") view=move || view! {
-                <HomePage user_data/> // user_data
-            }/>
-            <Route path=StaticSegment("/signup") ssr=SsrMode::Async view=move || view! {
-                <Signup action=signup is_routing />
-            }/>
-            <Route path=StaticSegment("/login") ssr=SsrMode::Async view=move || view! {
-                <Login action=login is_routing />
-            }/>
-                <ProtectedRoute
-                    path=StaticSegment("/settings")
-                    redirect_path=|| {"/"}
-                    condition=move || {
-                        match user_data.get() {
-                            None => Some(false),
-                            Some(Err(_)) => Some(false),
-                            Some(Ok(None)) => Some(false),
-                            Some(Ok(Some(_))) => Some(true),
-                        }
-                    }
-                    view=move || view! {
-                        <h1>"Settings"</h1>
-                        <Logout action=logout />
+                <Route path=StaticSegment("/") view=move || view! {
+                    <HomePage user_data/> // user_data
+                }/>
+                <Route path=StaticSegment("/signup") ssr=SsrMode::Async view=move || view! {
+                    <Signup action=signup is_routing />
+                }/>
+                <Route path=StaticSegment("/login") ssr=SsrMode::Async view=move || view! {
+                    <Login action=login is_routing />
+                }/>
+                <Route path=StaticSegment("/settings") ssr=SsrMode::Async view=move || view! {
+                    <Suspense>
+                        <Show when=move || is_not_logged_in(user_data.get())>
+                            <Redirect path="/" />
+                        </Show>
+                    </Suspense>
+                    <h1>"Settings"</h1>
+                    <Logout action=logout />
                 }/>
             </Routes>
             </main>
@@ -273,7 +306,7 @@ pub async fn login(
     };
     let session_id = gen_128bit_base64();
     issue_session_cookie(user_id, session_id).await?;
-    redirect("/");
+    axum_redirect("/");
     Ok(String::from("Login Successful"))
 }
 
@@ -374,7 +407,7 @@ pub async fn signup(
     };
     let session_id = gen_128bit_base64();
     issue_session_cookie(user_id, session_id).await?;
-    redirect("/");
+    axum_redirect("/");
     Ok(String::from("Registration Successful"))
 }
 
@@ -392,6 +425,6 @@ pub fn Logout(action: ServerAction<Logout>) -> impl IntoView {
 #[server(Logout, "/api")]
 async fn logout() -> Result<(), ServerFnError> {
     destroy_session().await;
-    redirect("/");
+    axum_redirect("/");
     Ok(())
 }

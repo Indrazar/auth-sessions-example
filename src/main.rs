@@ -24,7 +24,7 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     };
     use axum_server::tls_rustls::RustlsConfig;
     use leptos::prelude::*;
-    use leptos_axum::*;
+    use leptos_axum::{handle_server_fns_with_context, generate_route_list, LeptosRoutes};
     use std::{env, net::SocketAddr, path::PathBuf};
     use sqlx::sqlite::SqlitePoolOptions;
     use tower_http::compression::CompressionLayer;
@@ -104,7 +104,7 @@ async fn main() {
 
     println!("generating routes, ignore next sql error during route generation only, sql isn't even up yet");
     // Generate the list of routes in your Leptos App
-    let routes = leptos_axum::generate_route_list(App);
+    let routes = generate_route_list(App);
     println!("routes generated");
 
     println!("setting up sqlite pool");
