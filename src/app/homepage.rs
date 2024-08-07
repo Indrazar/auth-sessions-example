@@ -10,33 +10,37 @@ use leptos::{either::Either, prelude::*};
 use web_sys::{CloseEvent, Event}; //WebSocket as WebSysWebSocket};
 
 #[component]
-pub fn HomePage() -> impl IntoView {
-    //user_data: leptos_reactive::Resource<(), Result<Option<APIUserData>, ServerFnError>>,
-    let user_data = use_context::<Result<Option<APIUserData>, ServerFnError>>();
+pub fn HomePage(
+    user_data: Resource<Result<Option<APIUserData>, ServerFnError>>,
+) -> impl IntoView {
     view! {
-        //<Transition
-        //    fallback=|| view! {<p>"Loading..."</p>}
-        //>
-        <h1>Homepage</h1>
-        { match user_data {
-                Some(Err(e)) => Either::Left(view! {
-                    <p>"There was an error loading the page."</p>
-                    <span>{format!("error: {}", e)}</span>
-                }),
-                Some(Ok(inner)) => Either::Right(match inner {
-                    None => Either::Left(view! {""}),
-                    Some(user_data) => Either::Right(view! {
-                        <div class="main-text">
-                            <HomepageLoggedIn user_data/>
-                        </div>
-                    })
-                }),
-                None => Either::Left(view! {
-                    <p>"There was an error loading the page."</p>
-                    <span>{format!("error: no user data")}</span>
-                }),
-        }}
-        //</Transition>
+        <Suspense fallback=|| view! {<p>"Loading..."</p>}>
+            { move || {
+                match user_data.get() {
+                    Some(inner) => Either::Left(match inner {
+                        Err(e) => Either::Left(
+                            view! {
+                                <p>"There was an error loading the page."</p>
+                                <span>{format!("error: {}", e)}</span>
+                            }
+                        ),
+                        Ok(user) => Either::Right({match user {
+                            None => Either::Left(view! {""}),
+                            Some(user_data) => Either::Right(
+                                view! {
+                                    <div class="main-text">
+                                        <HomepageLoggedIn user_data/>
+                                    </div>
+                                }
+                            )
+                        }})
+                    }),
+                    None => Either::Right(view! {
+                        <p>"Loading..."</p>
+                    }),
+                }
+            }}
+        </Suspense>
     }
 }
 

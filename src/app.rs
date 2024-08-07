@@ -60,12 +60,20 @@ fn set_headers() {
             // script-src 'strict-dynamic' 'nonce-{nonce}'
             // for debug we add the cargo leptos websocket:
             //     connect-src ws://127.0.0.1:3001/
+            // bad? version
             format!(
                 "default-src 'self';\
-                script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}';\
-                style-src 'nonce-{nonce}' 'self';\
+                script-src 'unsafe-eval' 'unsafe-inline';\
+                style-src 'self';\
                 connect-src 'self' ws://localhost:3001/ ws://127.0.0.1:3001/ {WEBSOCKET_DIRECTIVE_URL};",
             )
+            //good version
+            //format!(
+            //    "default-src 'self';\
+            //    script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}';\
+            //    style-src 'nonce-{nonce}' 'self';\
+            //    connect-src 'self' ws://localhost:3001/ ws://127.0.0.1:3001/ {WEBSOCKET_DIRECTIVE_URL};",
+            //)
             .as_str(),
         )
         .expect("valid header"), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
@@ -101,17 +109,20 @@ pub fn App() -> impl IntoView {
     let logout = ServerAction::<Logout>::new();
     let signup = ServerAction::<Signup>::new();
     let (is_routing, set_is_routing) = signal(false);
-    let user_data = Resource::new(move || (), move |_| get_user_data());
-    provide_context(
-        user_data
-            .get()
-            .map(|n| n.unwrap_or_default())
-            .unwrap_or_default(),
+    let user_data = Resource::new(
+        move || {
+            (
+                // changing these conditions may reduce "get_user_data" server calls
+                login.version().get(),
+                signup.version().get(),
+                logout.version().get(),
+            )
+        },
+        move |_| get_user_data(),
     );
 
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
-    //let nonce = "";
 
     cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
         // Set correct header for `Content-Type: text/html; charset=UTF-8`, etc.
@@ -124,7 +135,6 @@ pub fn App() -> impl IntoView {
             // injects a stylesheet into the document <head>
             // id=leptos means cargo-leptos will hot-reload this stylesheet
             <Stylesheet id="leptos" href="/pkg/auth_sessions_example.css"/>
-            //<script nonce=use_nonce />
 
             // sets the document title
             <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
@@ -135,10 +145,10 @@ pub fn App() -> impl IntoView {
                 <A href="/"><h1>"Auth-Sessions-Example"</h1></A>
                 <h2>"A Letpos HTTPS Auth Example"</h2>
                 <LogHeader/>
-                <Transition
+                <Suspense
                     fallback=move || view! { <span>"Loading..."</span> }
                 >
-                {move || {
+                { move || {
                     user_data.get().map(|user| match user {
                         Err(e) => Either::Left(view! {
                             <A href="/signup">"Signup"</A>", "
@@ -164,22 +174,22 @@ pub fn App() -> impl IntoView {
                         )
                     })
                 }}
-                </Transition>
+                </Suspense>
             </header>
             <div/>
             <main>
             <Routes fallback=|| "Not Found.">
             <Route path=StaticSegment("/") view=move || view! {
-                <HomePage/> // user_data
+                <HomePage user_data/> // user_data
             }/>
-            <Route path=StaticSegment("signup") ssr=SsrMode::Async view=move || view! {
+            <Route path=StaticSegment("/signup") ssr=SsrMode::Async view=move || view! {
                 <Signup action=signup is_routing />
             }/>
-            <Route path=StaticSegment("login") ssr=SsrMode::Async view=move || view! {
+            <Route path=StaticSegment("/login") ssr=SsrMode::Async view=move || view! {
                 <Login action=login is_routing />
             }/>
                 <ProtectedRoute
-                    path=StaticSegment("settings")
+                    path=StaticSegment("/settings")
                     redirect_path=|| {"/"}
                     condition=move || {
                         match user_data.get() {
@@ -189,7 +199,6 @@ pub fn App() -> impl IntoView {
                             Some(Ok(Some(_))) => Some(true),
                         }
                     }
-                    ssr=SsrMode::Async
                     view=move || view! {
                         <h1>"Settings"</h1>
                         <Logout action=logout />

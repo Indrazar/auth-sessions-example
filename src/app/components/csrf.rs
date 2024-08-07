@@ -1,7 +1,5 @@
 use cfg_if::cfg_if;
 use leptos::{either::Either, prelude::*};
-use leptos_reactive::{create_resource, SignalGet};
-
 cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::security::generate_csrf;
 
@@ -13,11 +11,11 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 #[allow(unused_braces)]
 #[component]
 pub fn CSRFField() -> impl IntoView {
-    let csrf_resource = create_resource(|| (), move |_| issue_csrf());
+    let csrf_resource = Resource::new(|| (), |_| issue_csrf());
 
     view! {
-        <Suspense fallback= || { "Loading..." }>
-            {move || {
+        <Suspense fallback= || view! {<p>"Loading..."</p>}>
+            { move || {
                 csrf_resource.get().map(|n| match n {
                     Err(e) => Either::Left(view! {
                         { format!("Page Load Failed: {e}. Please reload the page or try again later.") }

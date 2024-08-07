@@ -67,7 +67,12 @@ pub fn ErrorTemplate(
     {
         let response = use_context::<ResponseOptions>();
         if let Some(response) = response {
-            response.set_status(errors[0].status_code());
+            if errors.len() > 0 {
+                response.set_status(errors[0].status_code());
+            } else {
+                log::error!("No Errors Found, but we're in the error template???");
+                response.set_status(StatusCode::INTERNAL_SERVER_ERROR)
+            }
         }
     }
 

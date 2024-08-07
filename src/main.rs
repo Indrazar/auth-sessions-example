@@ -102,6 +102,11 @@ async fn main() {
     };
     println!("certs imported, but not checked");
 
+    println!("generating routes, ignore next sql error during route generation only, sql isn't even up yet");
+    // Generate the list of routes in your Leptos App
+    let routes = leptos_axum::generate_route_list(App);
+    println!("routes generated");
+
     println!("setting up sqlite pool");
     //setup db pool
     let pool = SqlitePoolOptions::new()
@@ -118,11 +123,6 @@ async fn main() {
         .await
         .expect("could not run SQLx migrations");
     println!("sqlite up");
-
-    println!("generating routes, ignore next sql error during route generation only");
-    // Generate the list of routes in your Leptos App
-    let routes = leptos_axum::generate_route_list(App);
-    println!("routes generated");
 
     log::info!("Server process starting");
     log::info!("Server {:#?}", leptos_options);
