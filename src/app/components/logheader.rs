@@ -1,6 +1,4 @@
 use leptos::prelude::*;
-//#[cfg(debug_assertions)]
-//use leptos_router::ActionForm;
 
 #[cfg(feature = "ssr")]
 use http::request::Parts;
@@ -12,11 +10,9 @@ pub fn LogHeader() -> impl IntoView {
     let log_header = ServerAction::<LogClientHeader>::new();
 
     view! {
-        <p>
-            <ActionForm action=log_header>
-                <button class="log_header" type="submit">"Log Current Headers"</button>
-            </ActionForm>
-        </p>
+        <ActionForm action=log_header>
+            <button class="log_header" type="submit">"Log Current Headers"</button>
+        </ActionForm>
     }
 }
 
@@ -29,20 +25,14 @@ async fn log_client_headers() -> Result<String, ServerFnError> {
         log::debug!(
             "Client pressed LogHeader, printing all data from client:\nhttp_req.version: \
              {:#?}\nhttp_req.method: {:#?}\nhttp_req.uri.path(): {:#?}\nhttp_req.headers: \
-             {:#?}\nhttp_req.extensions: {:#?}",
+             {:#?}\nhttp_req.extensions: {:#?}\nmeta_ctx: {:#?}",
             &http_req.version,
             &http_req.method,
             &http_req.uri.path(),
             &http_req.headers,
-            &http_req.extensions
+            &http_req.extensions,
+            use_context::<leptos_meta::MetaContext>()
         );
-        // ResponseOptions are more of an outbox than incoming data
-        //log::debug!("resp_opt: {:#?}", use_context::<leptos_actix::ResponseOptions>(cx));
-        //log::debug!(
-        //    "route_int_ctx: {:#?}",
-        //    use_context::<leptos_router::RouterIntegrationContext>()
-        //);
-        log::debug!("meta_ctx: {:#?}", use_context::<leptos_meta::MetaContext>());
     }
 
     Ok("It worked".to_string())

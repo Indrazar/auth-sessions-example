@@ -9,7 +9,7 @@ use components::{csrf::CSRFField, logheader::LogHeader};
 mod homepage;
 use crate::database::APIUserData;
 use crate::defs::*;
-use leptos_meta::{provide_meta_context, MetaTags};
+use leptos_meta::{provide_meta_context, Meta, MetaTags};
 
 use homepage::HomePage;
 
@@ -20,9 +20,9 @@ cfg_if! { if #[cfg(feature = "ssr")] {
     use crate::security::{gen_128bit_base64, validate_login, validate_registration};
     //use leptos_meta::{Meta, MetaTags};
     use axum::http::{header::CONTENT_TYPE, HeaderValue};
-    //use leptos::attr::Nonce;
     use leptos_axum::redirect as axum_redirect;
     use secrecy::SecretString;
+    use leptos::nonce::use_nonce;
 }}
 
 pub mod error_template;
@@ -32,26 +32,42 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
     set_headers();
 
     view! {
-        <!DOCTYPE html>
-        <html lang="en">
-            <head>
-                <meta charset="utf-8"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <AutoReload options=options.clone() />
-                <HydrationScripts options/>
-                <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
-                // injects a stylesheet into the document <head>
-                // id=leptos means cargo-leptos will hot-reload this stylesheet
-                <Stylesheet id="leptos" href="/pkg/auth_sessions_example.css"/>
-                // sets the document title
-                <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
-                <MetaTags/>
-            </head>
-            <body>
-                <App/>
-            </body>
-        </html>
-    }
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+    /*                 <Meta
+                    http_equiv="Content-Security-Policy"
+                    content=move || {
+                        // this will insert the CSP with nonce on the server, be empty on client
+                        use_nonce()
+                            .map(|nonce| {
+                                format!(
+                                    "default-src 'self';\
+                                    script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}' 'self';\
+                                    style-src 'nonce-{nonce}' 'self';\
+                                    connect-src 'self' ws://localhost:3001/ ws://127.0.0.1:3001/ {WEBSOCKET_DIRECTIVE_URL};"
+                                )
+                            })
+                            .unwrap_or_default()
+                    }
+                    /> */
+                    <meta charset="utf-8"/>
+                    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                    <AutoReload options=options.clone() />
+                    <HydrationScripts options/>
+                    <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
+                    // injects a stylesheet into the document <head>
+                    // id=leptos means cargo-leptos will hot-reload this stylesheet
+                    <Stylesheet id="leptos" href="/pkg/auth_sessions_example.css"/>
+                    // sets the document title
+                    <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
+                    <MetaTags/>
+                </head>
+                <body>
+                    <App/>
+                </body>
+            </html>
+        }
 }
 
 #[cfg(feature = "ssr")]
@@ -60,6 +76,7 @@ fn set_headers() {
         Some(ro) => ro,
         None => return, // building routes in main.rs
     };
+
     let nonce = use_nonce().expect("a nonce to be made");
 
     //TODO remove after leptos sets any of these by default
@@ -93,7 +110,7 @@ fn set_headers() {
                 "script-src 'unsafe-inline' 'unsafe-eval' 'self';\
                 connect-src 'self' ws://localhost:3001/ ws://127.0.0.1:3001/ {WEBSOCKET_DIRECTIVE_URL};",
             )
-            //good version
+            ////good version
             //format!(
             //    "default-src 'self';\
             //    script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}' 'self';\
@@ -113,12 +130,18 @@ fn set_headers() {
             // script-src 'strict-dynamic' 'nonce-{nonce}'
             // for debug we remove the cargo leptos websocket:
             //     connect-src ws://127.0.0.1:3001/
+            // bad? version
             format!(
-                "default-src 'self';\
-                script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}';\
-                style-src 'nonce-{nonce}' 'self';\
+                "script-src 'unsafe-inline' 'unsafe-eval' 'self';\
                 connect-src 'self' {WEBSOCKET_DIRECTIVE_URL};",
             )
+            ////good version
+            //format!(
+            //    "default-src 'self';\
+            //    script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}';\
+            //    style-src 'nonce-{nonce}' 'self';\
+            //    connect-src 'self' {WEBSOCKET_DIRECTIVE_URL};",
+            //)
             .as_str(),
         )
         .expect("valid header"), // media-src example.org example.net; script-src userscripts.example.com; img-src *;
@@ -180,7 +203,7 @@ pub fn App() -> impl IntoView {
             <nav>
                 <A href="/"><h1>"Auth-Sessions-Example"</h1></A>
                 <h2>"A Letpos HTTPS Auth Example"</h2>
-                //<LogHeader/>
+                <LogHeader/>
                 <Suspense
                     fallback=move || view! { <span>"Loading..."</span> }
                 >

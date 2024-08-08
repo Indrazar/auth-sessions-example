@@ -189,17 +189,23 @@ async fn server_fn_handler(
     State(app_state): State<AppState>,
     connect_info: ConnectInfo<SocketAddr>,
     path: Path<String>,
-    headers: HeaderMap,
-    query: axum::extract::RawQuery,
+    //headers: HeaderMap,
+    //query: axum::extract::RawQuery,
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
-    log::debug!(
-        "server_fn_handler: \n\n path: {:?}\n\n headers: {:?}\n\n query: {:?}\n\n request: {:?}\n\n connect_info: {:?}\n\n",
-        path,
-        headers,
-        query,
-        request,
-        connect_info,
+    //log::trace!(
+    //    "server_fn_handler: \n\n path: {:?}\n\n headers: {:?}\n\n query: {:?}\n\n request: {:?}\n\n connect_info: {:?}\n\n",
+    //    path,
+    //    headers,
+    //    query,
+    //    request,
+    //    connect_info,
+    log::trace!(
+        "server_fn_handler: path:\"{}\" connect_info: {}:{}",
+        path.parse::<String>()
+            .unwrap_or(String::from("invalid path")),
+        connect_info.ip(),
+        connect_info.port(),
     );
     handle_server_fns_with_context(
         move || {

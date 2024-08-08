@@ -84,7 +84,7 @@ sqlx migrate run
 
 ### Setup Troubleshooting on Windows
 
-Since axum-server now uses Amazon's AWS crytpographic libraries you may need to install the standalone LLVM complier if you get weird clang errors. [Amazon's Guide is here](https://aws.github.io/aws-lc-rs/requirements/windows). With LLVM installed set your environment variable to LLVM's bin directory.
+Since axum-server now uses Amazon's AWS crytpographic libraries you may need to install the standalone LLVM complier if you get weird clang errors. [Amazon's Guide is here](https://aws.github.io/aws-lc-rs/requirements/windows). With LLVM installed set your `LIBCLANG_PATH` environment variable to LLVM's bin directory.
 
 The default is here:
 ```
