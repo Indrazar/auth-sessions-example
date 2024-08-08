@@ -9,7 +9,7 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     use auth_sessions_example::{
         defs::{AppState, ServerVars},
         fileserv::file_and_error_handler,
-        app::App,
+        app::{App, shell},
         websocket::axum_ws_handler,
         security::gen_128bit_base64,
     };
@@ -169,6 +169,7 @@ async fn leptos_routes_handler(
     connect_info: ConnectInfo<SocketAddr>,
     req: Request<AxumBody>,
 ) -> Response {
+    let leptos_options = app_state.leptos_options.clone();
     let handler = leptos_axum::render_route_with_context(
         //app_state.leptos_options.clone(),
         app_state.routes.clone(),
@@ -178,7 +179,7 @@ async fn leptos_routes_handler(
             provide_context(connect_info);
             provide_context(app_state.leptos_options.clone());
         },
-        || view! {<App/>},
+        move || shell(leptos_options.clone()),
     );
     handler(req).await.into_response()
 }

@@ -27,23 +27,32 @@ cfg_if! { if #[cfg(feature = "ssr")] {
 
 pub mod error_template;
 
-//pub fn shell(options: LeptosOptions) -> impl IntoView {
-//    view! {
-//        <!DOCTYPE html>
-//        <html lang="en">
-//            <head>
-//                <meta charset="utf-8"/>
-//                <meta name="viewport" content="width=device-width, initial-scale=1"/>
-//                <AutoReload options=options.clone() />
-//                <HydrationScripts options/>
-//                <MetaTags/>
-//            </head>
-//            <body>
-//                <App/>
-//            </body>
-//        </html>
-//    }
-//}
+pub fn shell(options: LeptosOptions) -> impl IntoView {
+    #[cfg(feature = "ssr")]
+    set_headers();
+
+    view! {
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <AutoReload options=options.clone() />
+                <HydrationScripts options/>
+                <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
+                // injects a stylesheet into the document <head>
+                // id=leptos means cargo-leptos will hot-reload this stylesheet
+                <Stylesheet id="leptos" href="/pkg/auth_sessions_example.css"/>
+                // sets the document title
+                <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
+                <MetaTags/>
+            </head>
+            <body>
+                <App/>
+            </body>
+        </html>
+    }
+}
 
 #[cfg(feature = "ssr")]
 fn set_headers() {
@@ -81,15 +90,13 @@ fn set_headers() {
             //     connect-src ws://127.0.0.1:3001/
             // bad? version
             format!(
-                "default-src 'self';\
-                script-src 'unsafe-eval' 'unsafe-inline';\
-                style-src 'self';\
+                "script-src 'unsafe-inline' 'unsafe-eval' 'self';\
                 connect-src 'self' ws://localhost:3001/ ws://127.0.0.1:3001/ {WEBSOCKET_DIRECTIVE_URL};",
             )
             //good version
             //format!(
             //    "default-src 'self';\
-            //    script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}';\
+            //    script-src 'unsafe-eval' 'strict-dynamic' 'nonce-{nonce}' 'self';\
             //    style-src 'nonce-{nonce}' 'self';\
             //    connect-src 'self' ws://localhost:3001/ ws://127.0.0.1:3001/ {WEBSOCKET_DIRECTIVE_URL};",
             //)
@@ -144,6 +151,9 @@ fn is_not_logged_in(user_data: Option<Result<Option<APIUserData>, ServerFnError>
 
 #[component]
 pub fn App() -> impl IntoView {
+    // Provides context that manages stylesheets, titles, meta tags, etc.
+    provide_meta_context();
+
     let login = ServerAction::<Login>::new();
     let logout = ServerAction::<Logout>::new();
     let signup = ServerAction::<Signup>::new();
@@ -160,27 +170,14 @@ pub fn App() -> impl IntoView {
         move |_| get_user_data(),
     );
 
-    // Provides context that manages stylesheets, titles, meta tags, etc.
-    provide_meta_context();
-
-    cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
-        // Set correct header for `Content-Type: text/html; charset=UTF-8`, etc.
-        set_headers();
-    }}
+    //cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
+    //    // Set correct header for `Content-Type: text/html; charset=UTF-8`, etc.
+    //    set_headers();
+    //}}
 
     view! {
-        <head>
-            <Link rel="shortcut icon" type_="image/ico" href="/favicon.ico"/>
-            // injects a stylesheet into the document <head>
-            // id=leptos means cargo-leptos will hot-reload this stylesheet
-            <Stylesheet id="leptos" href="/pkg/auth_sessions_example.css"/>
-
-            // sets the document title
-            <Title text="Auth-Sessions-Example: A Letpos HTTPS Auth Example"/>
-        </head>
-
         <Router set_is_routing>
-            <header>
+            <nav>
                 <A href="/"><h1>"Auth-Sessions-Example"</h1></A>
                 <h2>"A Letpos HTTPS Auth Example"</h2>
                 <LogHeader/>
@@ -214,7 +211,7 @@ pub fn App() -> impl IntoView {
                     })
                 }}
                 </Suspense>
-            </header>
+            </nav>
             <div/>
             <main>
             <Routes fallback=|| "Not Found.">
