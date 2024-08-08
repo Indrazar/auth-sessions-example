@@ -74,11 +74,10 @@ pub async fn validate_session() -> Result<Option<Uuid>, DatabaseError> {
 }
 
 #[cfg(feature = "ssr")]
-pub fn parse_session_header_cookie(cookies_raw_string: &str) -> String {
-    log::error!("raw cookie analysis needed: {cookies_raw_string}");
-    //if let Some(session) = cookies.get("SESSIONID") {
-    //    return session.to_string();
-    //}
+pub fn parse_session_header_cookie(cookies: &str) -> String {
+    if let Some(session) = get_cookie_value(cookies, "SESSIONID") {
+        return session;
+    }
     String::default()
 }
 
