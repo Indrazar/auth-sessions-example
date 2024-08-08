@@ -180,7 +180,7 @@ pub fn App() -> impl IntoView {
             <nav>
                 <A href="/"><h1>"Auth-Sessions-Example"</h1></A>
                 <h2>"A Letpos HTTPS Auth Example"</h2>
-                <LogHeader/>
+                //<LogHeader/>
                 <Suspense
                     fallback=move || view! { <span>"Loading..."</span> }
                 >

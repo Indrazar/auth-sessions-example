@@ -9,10 +9,8 @@ use http::request::Parts;
 /// On the server side this will print out all the headers provided by the client
 #[component]
 pub fn LogHeader() -> impl IntoView {
-    #[cfg(debug_assertions)]
     let log_header = ServerAction::<LogClientHeader>::new();
 
-    #[cfg(debug_assertions)]
     view! {
         <p>
             <ActionForm action=log_header>

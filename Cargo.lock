@@ -202,7 +202,6 @@ dependencies = [
  "leptos_axum",
  "leptos_macro",
  "leptos_meta",
- "leptos_reactive",
  "leptos_router",
  "log",
  "mime",
@@ -1653,29 +1652,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "leptos_reactive"
-version = "0.7.0-preview2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ab1e6ec5ab6616a95f243f5059d933a05e4584d129fafcceb07a6c52887ac55"
-dependencies = [
- "base64 0.22.1",
- "cfg-if",
- "futures",
- "indexmap",
- "paste",
- "pin-project",
- "rustc-hash",
- "self_cell",
- "serde",
- "serde-wasm-bindgen",
- "serde_json",
- "slotmap",
- "thiserror",
- "tracing",
- "wasm-bindgen-futures",
-]
-
-[[package]]
 name = "leptos_router"
 version = "0.7.0-beta"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2529,12 +2505,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "self_cell"
-version = "1.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d369a96f978623eb3dc28807c4852d6cc617fed53da5d3c400feff1ef34a714a"
-
-[[package]]
 name = "send_wrapper"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2545,9 +2515,9 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.204"
+version = "1.0.205"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc76f558e0cbb2a839d37354c575f1dc3fdc6546b5be373ba43d95f231bf7c12"
+checksum = "e33aedb1a7135da52b7c21791455563facbbcc43d0f0f66165b42c21b3dfb150"
 dependencies = [
  "serde_derive",
 ]
@@ -2565,9 +2535,9 @@ dependencies = [
 
 [[package]]
 name = "serde_derive"
-version = "1.0.204"
+version = "1.0.205"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0cd7e117be63d3c3678776753929474f3b04a43a080c744d6b0ae2a8c28e222"
+checksum = "692d6f5ac90220161d6774db30c662202721e64aed9058d2c394f451261420c1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2762,7 +2732,6 @@ version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbff4acf519f630b3a3ddcfaea6c06b42174d9a44bc70c620e9ed1649d58b82a"
 dependencies = [
- "serde",
  "version_check",
 ]
 
