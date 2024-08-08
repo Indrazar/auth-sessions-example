@@ -31,6 +31,9 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
     #[cfg(feature = "ssr")]
     set_headers();
 
+    // Provides context that manages stylesheets, titles, meta tags, etc.
+    provide_meta_context();
+
     view! {
             <!DOCTYPE html>
             <html lang="en">
@@ -174,9 +177,6 @@ fn is_not_logged_in(user_data: Option<Result<Option<APIUserData>, ServerFnError>
 
 #[component]
 pub fn App() -> impl IntoView {
-    // Provides context that manages stylesheets, titles, meta tags, etc.
-    provide_meta_context();
-
     let login = ServerAction::<Login>::new();
     let logout = ServerAction::<Logout>::new();
     let signup = ServerAction::<Signup>::new();
