@@ -14,7 +14,7 @@ pub fn CSRFField() -> impl IntoView {
     let csrf_resource = Resource::new(|| (), |_| issue_csrf());
 
     view! {
-        <Suspense fallback= || view! {<p>"Loading..."</p>}>
+        <Transition fallback= || view! {<p>"Loading..."</p>}>
             { move || {
                 csrf_resource.get().map(|n| match n {
                     Err(e) => Either::Left(view! {
@@ -27,7 +27,7 @@ pub fn CSRFField() -> impl IntoView {
                     ),
                 })
             }}
-        </Suspense>
+        </Transition>
     }
 }
 

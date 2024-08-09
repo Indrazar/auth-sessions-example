@@ -248,11 +248,11 @@ pub fn App() -> impl IntoView {
                     <Login action=login is_routing />
                 }/>
                 <Route path=StaticSegment("/settings") ssr=SsrMode::Async view=move || view! {
-                    <Suspense>
+                    <Transition>
                         <Show when=move || is_not_logged_in(user_data.get())>
                             <Redirect path="/" />
                         </Show>
-                    </Suspense>
+                    </Transition>
                     <h1>"Settings"</h1>
                     <Logout action=logout />
                 }/>
