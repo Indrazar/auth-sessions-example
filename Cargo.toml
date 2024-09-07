@@ -9,7 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 argon2 = { version = "0.5.0", features = ["std"], optional = true }
 axum = { version = "0.7.5", optional = true, features = ["macros", "ws"] }
-axum-server = { version = "0.7.1", features = ["tls-rustls"], optional = true }
+axum-server = { version = "0.7.1", features = ["tls-rustls-no-provider"], optional = true }
 base64 = { version = "0.22", features = ["std"], optional = true }
 blake2 = {version = "0.10.6", optional = true }
 cfg-if = "1"
@@ -47,7 +47,7 @@ tokio = { version = "1.25", features = ["full"], optional = true }
 tower = { version = "0.4", optional = true }
 tower-http = { version = "0.5.0", features = ["fs", "compression-gzip", "trace"], optional = true }
 uuid = { version = "1", features = ["fast-rng", "std", "serde", "v4", "v7"], optional = true }
-wasm-bindgen = "0.2.89"
+wasm-bindgen = "0.2.92"
 web-sys = { version = "0.3.66", features = ["AbortController", "AbortSignal", "HtmlDocument"] }
 
 [features]

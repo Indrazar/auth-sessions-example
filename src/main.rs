@@ -16,7 +16,7 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     use axum::{
         extract::{Host, Path, ConnectInfo, State},
         handler::HandlerWithoutStateExt,
-        http::{Request, StatusCode, Uri, header::HeaderMap},
+        http::{Request, StatusCode, Uri},
         response::{Response, Redirect, IntoResponse},
         routing::{post, get},
         BoxError, Router,

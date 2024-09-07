@@ -322,7 +322,12 @@ pub async fn login(
 ) -> Result<String, ServerFnError> {
     let user_id = match validate_login(csrf, username, SecretString::from(password)).await {
         Ok(id) => id,
-        Err(e) => return Ok(format!("{:?}", e)),
+        Err(e) => {
+            log::trace!("login attempt failed: {:?}", e);
+            // please note this string is sent to the client,
+            //   provide as little information as possible as to the reason
+            return Ok(String::from("Login failed, please try again"));
+        }
     };
     let session_id = gen_128bit_base64();
     issue_session_cookie(user_id, session_id).await?;
