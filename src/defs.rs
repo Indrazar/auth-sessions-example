@@ -46,9 +46,9 @@ cfg_if! {
         use axum::extract::FromRef;
         use leptos_axum::AxumRouteListing;
 
-        #[derive(Debug, Clone)]
+        #[derive(Debug, Clone, Copy)]
         pub struct ServerVars {
-            pub csrf_server: String,
+            pub csrf_server: u128,
         }
 
         #[derive(FromRef, Debug, Clone)]
@@ -238,31 +238,31 @@ impl std::fmt::Display for RegistrationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RegistrationError::EmailNotMatching => {
-                write!(f, "Provided emails do not match.")
+                write!(f, "Emails do not match.")
             }
             RegistrationError::InvalidEmail => {
-                write!(f, "Provided email was invalid.")
+                write!(f, "Email was invalid.")
             }
             RegistrationError::PasswordNotMatching => {
-                write!(f, "Provided passwords do not match.")
+                write!(f, "Passwords do not match.")
             }
             RegistrationError::PasswordLength => {
-                write!(f, "Provided password does not meet the length requirement.")
+                write!(f, "Password does not meet the length requirement.")
             }
             RegistrationError::UsernameLength => {
-                write!(f, "Provided username does not meet the length requirement.")
+                write!(f, "Username does not meet the length requirement.")
             }
             RegistrationError::DisplayNameLength => {
-                write!(f, "Provided username does not meet the length requirement.")
+                write!(f, "Username does not meet the length requirement.")
             }
             RegistrationError::DisplayNameInvalidCharacters => {
-                write!(f, "Provided display name contains disallowed characters.")
+                write!(f, "Display name contains disallowed characters.")
             }
             RegistrationError::UniqueUsername => {
-                write!(f, "Provided username is already taken.")
+                write!(f, "Username is already taken.")
             }
             RegistrationError::UniqueDisplayName => {
-                write!(f, "Provided display name is already taken.")
+                write!(f, "Display name is already taken.")
             }
         }
     }

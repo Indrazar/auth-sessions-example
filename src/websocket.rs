@@ -9,7 +9,7 @@ use std::{
 use web_sys::{CloseEvent, Event, WebSocket as WebSysWebSocket};
 
 cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
-    use crate::database::validate_token_with_pool;
+    use crate::database::{validate_token_with_pool, user_data_with_pool};
     use crate::cookies::parse_session_header_cookie;
     use crate::defs::AppState;
     use axum::{
@@ -25,7 +25,6 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
     use std::{ops::ControlFlow, net::SocketAddr};
     //allows to split the websocket stream into separate TX and RX branches
     use futures::{sink::SinkExt, stream::StreamExt};
-    use uuid::Uuid;
 } else {
     use web_sys::{BinaryType, MessageEvent};
     use js_sys::Array;
@@ -480,17 +479,38 @@ pub async fn axum_ws_handler(
     };
     // validate Uuid and pass into handler
     let unverified_session_id = parse_session_header_cookie(cookies_raw);
-    let user_uuid = match validate_token_with_pool(unverified_session_id, app_state.pool).await
-    {
-        Ok(Some(id)) => id,
-        Ok(None) => {
-            log::debug!(
-                "`{user_agent}` from {addr} wtih cookies {:#?} websocket rejected due to \
+    let user_uuid =
+        match validate_token_with_pool(unverified_session_id, app_state.pool.clone()).await {
+            Ok(Some(id)) => id,
+            Ok(None) => {
+                log::debug!(
+                    "`{user_agent}` from {addr} wtih cookies {:#?} websocket rejected due to \
                  invalid session.",
-                cookies_raw
-            );
-            return (StatusCode::UNAUTHORIZED, "please sign in first").into_response();
-        }
+                    cookies_raw
+                );
+                return (StatusCode::UNAUTHORIZED, "please sign in first").into_response();
+            }
+            Err(e) => match e {
+                crate::defs::DatabaseError::CouldNotFindPool => {
+                    return (StatusCode::INTERNAL_SERVER_ERROR, "try again later")
+                        .into_response()
+                }
+                crate::defs::DatabaseError::QueryFailed => {
+                    return (StatusCode::INTERNAL_SERVER_ERROR, "try again later")
+                        .into_response()
+                }
+                crate::defs::DatabaseError::NoEntries => {
+                    return (StatusCode::UNAUTHORIZED, "please sign in first").into_response()
+                }
+                crate::defs::DatabaseError::IncorrectRowsAffected => {
+                    return (StatusCode::INTERNAL_SERVER_ERROR, "try again later")
+                        .into_response()
+                }
+            },
+        };
+    log::trace!("`{user_agent}` from {addr} websocket request is valid for uuid {user_uuid}.");
+    let display_name = match user_data_with_pool(user_uuid, app_state.pool).await {
+        Ok(data) => data.display_name,
         Err(e) => match e {
             crate::defs::DatabaseError::CouldNotFindPool => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "try again later").into_response()
@@ -499,27 +519,29 @@ pub async fn axum_ws_handler(
                 return (StatusCode::INTERNAL_SERVER_ERROR, "try again later").into_response()
             }
             crate::defs::DatabaseError::NoEntries => {
-                return (StatusCode::UNAUTHORIZED, "please sign in first").into_response()
+                return (StatusCode::INTERNAL_SERVER_ERROR, "try again later").into_response()
             }
             crate::defs::DatabaseError::IncorrectRowsAffected => {
                 return (StatusCode::INTERNAL_SERVER_ERROR, "try again later").into_response()
             }
         },
     };
-    log::trace!("`{user_agent}` from {addr} websocket request accepted for uuid {user_uuid}.");
+    log::trace!(
+        "{user_uuid} is correctly identified as {display_name} and websocket request accepted"
+    );
     // finalize the upgrade process by returning upgrade callback.
     // we can customize the callback by sending additional info such as address.
-    ws.on_upgrade(move |socket| handle_socket(socket, addr, user_uuid))
+    ws.on_upgrade(move |socket| handle_socket(socket, addr, display_name))
 }
 
 #[cfg(feature = "ssr")]
 /// Actual websocket statemachine (one will be spawned per connection)
-async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
+async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, display_name: String) {
     //send a ping (unsupported by some browsers) just to kick things off and get a response
     if socket.send(Message::Ping(vec![1, 2, 3])).await.is_ok() {
-        log::trace!("Pinged {}...", who);
+        log::trace!("Pinged {display_name}->{who}...");
     } else {
-        log::trace!("Could not send ping {}!", who);
+        log::trace!("Could not send ping {display_name}->{who}!");
         // no Error here since the only thing we can do is to close the connection.
         // If we can not send messages, there is no way to salvage the statemachine anyway.
         return;
@@ -531,11 +553,11 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
     // connections.
     if let Some(msg) = socket.recv().await {
         if let Ok(msg) = msg {
-            if process_message(msg, who).is_break() {
+            if process_message(msg, who, &display_name).is_break() {
                 return;
             }
         } else {
-            log::trace!("client {who} abruptly disconnected");
+            log::trace!("client {display_name}->{who} abruptly disconnected");
             return;
         }
     }
@@ -546,11 +568,11 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
     // connecting to server and receiving their greetings.
     for i in 1..5 {
         if socket
-            .send(Message::Text(format!("Hi {i} times!")))
+            .send(Message::Text(format!("Hi {display_name} {i} times!")))
             .await
             .is_err()
         {
-            log::trace!("client {who} abruptly disconnected");
+            log::trace!("client {display_name}->{who} abruptly disconnected");
             return;
         }
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -593,12 +615,13 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
     });
 
     // This second task will receive messages from client and print them on server console
+    let display_name_cloned = display_name.clone();
     let mut recv_task = tokio::spawn(async move {
         let mut cnt = 0;
         while let Some(Ok(msg)) = receiver.next().await {
             cnt += 1;
             // print message and break if instructed to do so
-            if process_message(msg, who).is_break() {
+            if process_message(msg, who, &display_name_cloned).is_break() {
                 break;
             }
         }
@@ -609,7 +632,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
     tokio::select! {
         rv_a = (&mut send_task) => {
             match rv_a {
-                Ok(a) => log::trace!("{} messages sent to {}", a, who),
+                Ok(a) => log::trace!("{a} messages sent to {display_name}->{who}"),
                 Err(a) => log::error!("Error sending messages {:?}", a)
             }
             //log::trace!("send_task caused abort");
@@ -617,7 +640,7 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
         },
         rv_b = (&mut recv_task) => {
             match rv_b {
-                Ok(b) => log::trace!("Received {} messages", b),
+                Ok(b) => log::trace!("Received {b} messages"),
                 Err(b) => log::error!("Error receiving messages {:?}", b)
             }
             //log::trace!("recv_task caused abort");
@@ -626,29 +649,32 @@ async fn handle_socket(mut socket: AxumWebSocket, who: SocketAddr, user: Uuid) {
     }
 
     // returning from the handler closes the websocket connection
-    log::trace!("Websocket context {} destroyed", who);
+    log::trace!("Websocket context {display_name}->{who} destroyed");
 }
 
 #[cfg(feature = "ssr")]
 /// helper to print contents of messages to stdout. Has special treatment for Close.
-fn process_message(msg: Message, who: SocketAddr) -> ControlFlow<(), ()> {
+fn process_message(
+    msg: Message,
+    who: SocketAddr,
+    display_name: &String,
+) -> ControlFlow<(), ()> {
     match msg {
         Message::Text(t) => {
-            log::trace!(">>> {} sent str: {:?}", who, t);
+            log::trace!(">>> {display_name}->{who} sent str: {:?}", t);
         }
         Message::Binary(d) => {
-            log::trace!(">>> {} sent {} bytes: {:?}", who, d.len(), d);
+            log::trace!(">>> {display_name}->{who} sent {} bytes: {:?}", d.len(), d);
         }
         Message::Close(c) => {
             if let Some(cf) = c {
                 log::trace!(
-                    ">>> {} sent close with code {} and reason `{}`",
-                    who,
+                    ">>> {display_name}->{who} sent close with code {} and reason `{}`",
                     cf.code,
                     cf.reason
                 );
             } else {
-                log::trace!(">>> {} sent close message without CloseFrame", who);
+                log::trace!(">>> {display_name}->{who} sent close message without CloseFrame");
             }
             return ControlFlow::Break(());
         }

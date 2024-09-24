@@ -1,3 +1,6 @@
+# A Note about Security
+This has not been security tested externally or internally at any level. Do not use this for anything of any kind.
+
 # Notes about Spam
 Opening this to the greater internet is likey a VERY BAD idea unless you implement bot mitigations.
 The bots will arrive and they will sell you uggs.

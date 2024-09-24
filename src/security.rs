@@ -29,7 +29,7 @@ pub fn generate_csrf() -> String {
     };
     let csrf_cookie = gen_128bit_base64();
     let csrf_server = match use_context::<ServerVars>() {
-        Some(data) => data.csrf_server,
+        Some(data) => stringify_u128_base64(data.csrf_server),
         None => return String::default(),
     };
     response.append_header(
@@ -47,7 +47,7 @@ pub fn generate_csrf() -> String {
 #[cfg(feature = "ssr")]
 pub fn validate_csrf(req: Parts, csrf_token: String) -> Result<(), CsrfError> {
     let csrf_server = match use_context::<ServerVars>() {
-        Some(data) => data.csrf_server,
+        Some(data) => stringify_u128_base64(data.csrf_server),
         None => {
             log::error!("could not retrieve servervars");
             return Err(CsrfError::ServerValMissing);
@@ -230,6 +230,30 @@ pub fn gen_128bit_base64() -> String {
         base64::engine::general_purpose::NO_PAD,
     );
     base64::Engine::encode(&CUSTOM_ENGINE, Uuid::new_v4().as_bytes())
+}
+
+#[cfg(feature = "ssr")]
+pub fn gen_128bit() -> u128 {
+    // this will issue a CSPRNG created 128 bits of entropy.
+    // This function only generates the CSPRNG value.
+    //
+    // For session cookies alternate implementations would deliver AES encrypted
+    // data to the user to prevent addtional DB load on each API request including
+    // the session cookie.
+    //
+    // for now we will only use the full random ID and hit the database with each request
+    // this is an easy place to improve performance later if it is needed with high DB load
+    Uuid::new_v4().as_u128()
+}
+
+#[cfg(feature = "ssr")]
+pub fn stringify_u128_base64(input: u128) -> String {
+    const CUSTOM_ENGINE: base64::engine::GeneralPurpose = base64::engine::GeneralPurpose::new(
+        &base64::alphabet::URL_SAFE,
+        base64::engine::general_purpose::NO_PAD,
+    );
+
+    base64::Engine::encode(&CUSTOM_ENGINE, input.to_be_bytes())
 }
 
 #[cfg(feature = "ssr")]

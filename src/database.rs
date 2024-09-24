@@ -24,7 +24,7 @@ struct UserDataForPage {
 }
 
 #[cfg(feature = "ssr")]
-pub async fn user_data(id: Uuid) -> Result<APIUserData, AppError> {
+pub async fn user_data(id: Uuid) -> Result<APIUserData, DatabaseError> {
     let pool = match use_context::<SqlitePool>() {
         Some(pool) => Ok(pool),
         None => {
@@ -32,6 +32,14 @@ pub async fn user_data(id: Uuid) -> Result<APIUserData, AppError> {
             Err(DatabaseError::CouldNotFindPool)
         }
     }?;
+    user_data_with_pool(id, pool).await
+}
+
+#[cfg(feature = "ssr")]
+pub async fn user_data_with_pool(
+    id: Uuid,
+    pool: SqlitePool,
+) -> Result<APIUserData, DatabaseError> {
     let row = sqlx::query_as!(
         UserDataForPage,
         r#"SELECT display_name, button_presses FROM users WHERE user_id = ?"#,

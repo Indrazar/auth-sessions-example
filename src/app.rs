@@ -9,7 +9,7 @@ use components::{csrf::CSRFField, logheader::LogHeader};
 mod homepage;
 use crate::database::APIUserData;
 use crate::defs::*;
-use leptos_meta::{provide_meta_context, Meta, MetaTags};
+use leptos_meta::{provide_meta_context, MetaTags};
 
 use homepage::HomePage;
 
@@ -80,7 +80,7 @@ fn set_headers() {
         None => return, // building routes in main.rs
     };
 
-    let nonce = use_nonce().expect("a nonce to be made");
+    let _nonce = use_nonce().expect("a nonce to be made");
 
     //TODO remove after leptos sets any of these by default
     response.insert_header(
@@ -343,7 +343,7 @@ pub fn Signup(action: ServerAction<Signup>, is_routing: ReadSignal<bool>) -> imp
     let submit_disabled = false;
     //TODO create field validation on WASM side
 
-    let (signup_result, set_signup_result) = signal(String::default());
+    let (signup_result, set_signup_result) = signal(String::from(" "));
 
     Effect::new(move |_| match action.value().get() {
         Some(Ok(res)) => set_signup_result.set(res),
@@ -353,53 +353,48 @@ pub fn Signup(action: ServerAction<Signup>, is_routing: ReadSignal<bool>) -> imp
 
     Effect::new(move |_| {
         is_routing.get();
-        set_signup_result.set(String::default());
+        set_signup_result.set(String::from(" "));
     });
 
     view! {
         <h2>"Sign Up"</h2>
-        <p>
-            <ActionForm action=action>
-                    <CSRFField/>
-                <div>
-                    <label>"Username: "
-                        <input type="text" maxlength=USERNAME_MAX_LEN_STR minlength=USERNAME_MIN_LEN_STR name="username" required class="auth-input"/>
-                    </label>
-                </div>
-                <div>
-                    <label>"Display Name: "
-                        <input type="text" maxlength=DISPLAY_NAME_MAX_LEN minlength=DISPLAY_NAME_MIN_LEN name="display" required/>
-                    </label>
-                </div>
-                <div>
-                    <label>"E-Mail Address: "
-                        <input type="email" name="email" required/>
-                    </label>
-                </div>
-                <div>
-                    <label>"E-Mail Address (Confirmation): "
-                        <input type="email" name="email_confirmation" required/>
-                    </label>
-                </div>
-                <div>
-                    <label>"Password: "
-                        <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password" required class="auth-input"/>
-                    </label>
-                </div>
-                <div>
-                    <label>"Password (Confirmation): "
-                        <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password_confirmation" required/>
-                    </label>
-                </div>
-                    <button type="submit" disabled=submit_disabled>"Sign Up"</button>
-                <div>
-                    {signup_result}
-                </div>
-            </ActionForm>
-        </p>
-        <p>
-
-        </p>
+        <ActionForm action=action>
+                <CSRFField/>
+            <div>
+                <label>"Username: "
+                    <input type="text" maxlength=USERNAME_MAX_LEN_STR minlength=USERNAME_MIN_LEN_STR name="username" required class="auth-input"/>
+                </label>
+            </div>
+            <div>
+                <label>"Display Name: "
+                    <input type="text" maxlength=DISPLAY_NAME_MAX_LEN minlength=DISPLAY_NAME_MIN_LEN name="display" required/>
+                </label>
+            </div>
+            <div>
+                <label>"E-Mail Address: "
+                    <input type="email" name="email" required/>
+                </label>
+            </div>
+            <div>
+                <label>"E-Mail Address (Confirmation): "
+                    <input type="email" name="email_confirmation" required/>
+                </label>
+            </div>
+            <div>
+                <label>"Password: "
+                    <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password" required class="auth-input"/>
+                </label>
+            </div>
+            <div>
+                <label>"Password (Confirmation): "
+                    <input type="password" maxlength=PASSWORD_MAX_LEN_STR minlength=PASSWORD_MIN_LEN_STR name="password_confirmation" required/>
+                </label>
+            </div>
+                <button type="submit" disabled=submit_disabled>"Sign Up"</button>
+            <div>
+                {signup_result}
+            </div>
+        </ActionForm>
         <a href="/">"Go Back"</a>
     }
 }
@@ -427,7 +422,8 @@ pub async fn signup(
     {
         Ok(id) => id,
         Err(e) => {
-            return Ok(format!("{:?}", e));
+            log::trace!("signup attempt failed: {:?}, {}", e, e);
+            return Ok(format!("{}", e));
         }
     };
     let session_id = gen_128bit_base64();

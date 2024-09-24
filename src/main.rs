@@ -11,7 +11,7 @@ cfg_if::cfg_if! { if #[cfg(feature = "ssr")] {
         fileserv::file_and_error_handler,
         app::{App, shell},
         websocket::axum_ws_handler,
-        security::gen_128bit_base64,
+        security::gen_128bit,
     };
     use axum::{
         extract::{Host, Path, ConnectInfo, State},
@@ -132,7 +132,7 @@ async fn main() {
         pool,
         routes: routes.clone(),
         vars: ServerVars {
-            csrf_server: gen_128bit_base64(),
+            csrf_server: gen_128bit(),
         },
     };
 
@@ -170,18 +170,19 @@ async fn leptos_routes_handler(
     req: Request<AxumBody>,
 ) -> Response {
     let leptos_options = app_state.leptos_options.clone();
+    let cloned_app_state = app_state.clone();
     let handler = leptos_axum::render_route_with_context(
         //app_state.leptos_options.clone(),
         app_state.routes.clone(),
         move || {
-            provide_context(app_state.pool.clone());
-            provide_context(app_state.vars.clone());
+            provide_context(cloned_app_state.pool.clone());
+            provide_context(cloned_app_state.vars);
             provide_context(connect_info);
-            provide_context(app_state.leptos_options.clone());
+            provide_context(cloned_app_state.leptos_options.clone());
         },
         move || shell(leptos_options.clone()),
     );
-    handler(req).await.into_response()
+    handler(State(app_state), req).await.into_response()
 }
 
 #[cfg(feature = "ssr")]
